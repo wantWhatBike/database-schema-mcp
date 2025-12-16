@@ -307,6 +307,27 @@ npm run build
 npm run dev
 ```
 
+## Testing
+
+Run the test suite:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+The project includes:
+- **Unit tests**: Config loader, connector factory, schema formatter
+- **Integration tests**: SQLite connector with real database operations
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
 ## Security Considerations
 
 - Never commit `config.json` with real credentials

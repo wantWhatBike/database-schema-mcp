@@ -30,3 +30,11 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Test files
+test-*.json
+test-*.sqlite
+*.sqlite

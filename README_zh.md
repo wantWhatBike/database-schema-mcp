@@ -307,6 +307,27 @@ npm run build
 npm run dev
 ```
 
+## 测试
+
+运行测试套件：
+
+```bash
+# 运行所有测试
+npm test
+
+# 监视模式运行测试
+npm run test:watch
+
+# 运行测试并生成覆盖率报告
+npm run test:coverage
+```
+
+项目包含：
+- **单元测试**：配置加载器、连接器工厂、Schema 格式化器
+- **集成测试**：SQLite 连接器真实数据库操作
+
+详细测试文档请参考 [TESTING.md](TESTING.md)。
+
 ## 安全注意事项
 
 - 永远不要提交包含真实凭据的 `config.json`
