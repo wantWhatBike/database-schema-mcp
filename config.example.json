@@ -1,0 +1,66 @@
+{
+  "databases": {
+    "my_mysql": {
+      "type": "mysql",
+      "host": "localhost",
+      "port": 3306,
+      "database": "myapp",
+      "user": "root",
+      "password": "${MYSQL_PASSWORD}"
+    },
+    "my_postgres": {
+      "type": "postgresql",
+      "host": "localhost",
+      "port": 5432,
+      "database": "myapp",
+      "user": "postgres",
+      "password": "${POSTGRES_PASSWORD}",
+      "schema": "public"
+    },
+    "my_postgres_connection_string": {
+      "type": "postgresql",
+      "connectionString": "${POSTGRES_CONNECTION_STRING}"
+    },
+    "my_sqlite": {
+      "type": "sqlite",
+      "database": "/path/to/database.db"
+    },
+    "my_oracle": {
+      "type": "oracle",
+      "host": "localhost",
+      "port": 1521,
+      "user": "system",
+      "password": "${ORACLE_PASSWORD}",
+      "serviceName": "ORCL"
+    },
+    "my_mongodb": {
+      "type": "mongodb",
+      "uri": "mongodb://localhost:27017",
+      "database": "myapp",
+      "sampleSize": 1000
+    },
+    "my_mongodb_with_auth": {
+      "type": "mongodb",
+      "host": "localhost",
+      "port": 27017,
+      "database": "myapp",
+      "user": "admin",
+      "password": "${MONGO_PASSWORD}",
+      "authSource": "admin"
+    },
+    "my_redis": {
+      "type": "redis",
+      "host": "localhost",
+      "port": 6379,
+      "password": "${REDIS_PASSWORD}",
+      "db": 0,
+      "maxKeys": 1000,
+      "keyPattern": "*"
+    },
+    "my_kafka": {
+      "type": "kafka",
+      "brokers": ["localhost:9092"],
+      "clientId": "database-schema-mcp"
+    }
+  }
+}
