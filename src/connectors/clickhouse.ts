@@ -182,9 +182,24 @@ export class ClickHouseConnector extends DatabaseConnector {
         foreignKeys: [], // ClickHouse doesn't enforce foreign keys
       };
     } catch (error) {
-      console.error(`Error getting details for table ${tableName}:`, error);
+      this.logError(`Error getting details for table ${tableName}`, error);
       return null;
     }
+  }
+
+  /**
+   * Escape special LIKE pattern characters for use in ILIKE queries.
+   * Escapes % and _ characters so they're treated literally, not as wildcards.
+   *
+   * @param searchTerm The user's search term
+   * @returns Escaped search term safe for LIKE patterns
+   */
+  private escapeLikePattern(searchTerm: string): string {
+    // Escape backslash first, then % and _
+    return searchTerm
+      .replace(/\\/g, '\\\\')  // \ → \\
+      .replace(/%/g, '\\%')    // % → \%
+      .replace(/_/g, '\\_');   // _ → \_
   }
 
   async searchColumns(columnName: string): Promise<string[]> {
@@ -194,18 +209,21 @@ export class ClickHouseConnector extends DatabaseConnector {
 
     const database = this.config.database || 'default';
 
+    // Escape special LIKE characters to treat them literally
+    const escapedColumnName = this.escapeLikePattern(columnName);
+
     const result = await this.client.query({
       query: `
         SELECT DISTINCT table
         FROM system.columns
         WHERE database = {database: String}
-          AND name ILIKE {columnName: String}
+          AND name ILIKE {columnName: String} ESCAPE '\\\\'
         ORDER BY table
       `,
       format: 'JSONEachRow',
       query_params: {
         database,
-        columnName: `%${columnName}%`,
+        columnName: `%${escapedColumnName}%`,
       },
     });
 

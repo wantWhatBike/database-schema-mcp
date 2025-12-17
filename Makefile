@@ -1,29 +1,30 @@
-.PHONY: help install build dev test test-watch test-coverage test-db-up test-db-down test-db-logs test-integration clean lint format
+.PHONY: help install build dev test test-unit test-integration test-watch test-watch-unit test-watch-integration test-coverage test-db-up test-db-down建 clean clean-test
 
 # Default target
 help:
 	@echo "Database Schema MCP Server - Available Commands"
 	@echo ""
 	@echo "Installation & Build:"
-	@echo "  make install          - Install dependencies"
-	@echo "  make build            - Build TypeScript code"
-	@echo "  make dev              - Run in watch mode (auto-rebuild)"
+	@echo "  make install              - Install dependencies"
+	@echo "  make build                - Build TypeScript code"
+	@echo "  make dev                  - Run in watch mode (auto-rebuild)"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test             - Run all tests"
-	@echo "  make test-watch       - Run tests in watch mode"
-	@echo "  make test-coverage    - Run tests with coverage report"
-	@echo "  make test-integration - Run integration tests with databases"
+	@echo "  make test                 - Run all tests (unit + integration)"
+	@echo "  make test-unit            - Run unit tests only"
+	@echo "  make test-integration     - Run integration tests with databases"
+	@echo "  make test-watch           - Run all tests in watch mode"
+	@echo "  make test-watch-unit      - Run unit tests in watch mode"
+	@echo "  make test-watch-integration - Run integration tests in watch mode"
+	@echo "  make test-coverage        - Run tests with coverage report"
 	@echo ""
 	@echo "Test Databases:"
-	@echo "  make test-db-up       - Start all test databases (Docker)"
-	@echo "  make test-db-down     - Stop and remove test databases"
-	@echo "  make test-db-logs     - Show test database logs"
-	@echo "  make test-db-status   - Check test database status"
+	@echo "  make test-db-up           - Start all test databases (Docker)"
+	@echo "  make test-db-down         - Stop and remove test databases"
 	@echo ""
 	@echo "Maintenance:"
-	@echo "  make clean            - Remove build artifacts and dependencies"
-	@echo "  make clean-test       - Remove test artifacts only"
+	@echo "  make clean                - Remove build artifacts and dependencies"
+	@echo "  make clean-test           - Remove test artifacts only"
 	@echo ""
 
 # Installation & Build
@@ -40,40 +41,33 @@ dev:
 test:
 	npm test
 
-test-watch:
-	npm run test:watch
+test-unit:
+	npm run test:unit
 
-test-coverage:
-	npm run test:coverage
-
-# Integration tests with databases
 test-integration: test-db-up
 	@echo "Waiting for databases to be ready..."
 	@sleep 10
 	npm run test:integration
 	@$(MAKE) test-db-down
 
+test-watch:
+	npm run test:watch
+
+test-watch-unit:
+	npm run test:watch:unit
+
+test-watch-integration:
+	npm run test:watch:integration
+
+test-coverage:
+	npm run test:coverage
+
 # Test Database Management
 test-db-up:
-	docker-compose up -d
+	cd tests/integration && docker-compose up -d
 	@echo "Waiting for databases to initialize..."
 	@sleep 5
-	@docker-compose ps
-
-test-db-down:
-	docker-compose down -v
-
-test-db-logs:
-	docker-compose logs -f
-
-test-db-status:
-	@docker-compose ps
-	@echo ""
-	@echo "Testing database connectivity..."
-	@docker-compose exec -T mysql mysqladmin ping -h localhost -ptest_password || echo "MySQL: Not ready"
-	@docker-compose exec -T postgres pg_isready -U postgres || echo "PostgreSQL: Not ready"
-	@docker-compose exec -T mongodb mongosh --eval "db.adminCommand('ping')" || echo "MongoDB: Not ready"
-	@docker-compose exec -T redis redis-cli -a test_password ping || echo "Redis: Not ready"
+	@cd tests/integration && docker-compose ps
 
 # Clean
 clean:

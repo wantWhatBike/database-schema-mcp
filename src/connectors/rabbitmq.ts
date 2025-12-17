@@ -261,7 +261,7 @@ export class RabbitMQConnector extends DatabaseConnector {
 
       return { queues, exchanges, bindings };
     } catch (error) {
-      console.error('Failed to fetch from RabbitMQ Management API:', error);
+      this.logError('Failed to fetch from RabbitMQ Management API', error);
       return null;
     }
   }

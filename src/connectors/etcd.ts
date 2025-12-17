@@ -245,7 +245,7 @@ export class EtcdConnector extends DatabaseConnector {
 
       return meaningfulPatterns.slice(0, 50); // Limit to top 50 patterns
     } catch (error) {
-      console.error('Error analyzing etcd key patterns:', error);
+      this.logError('Error analyzing etcd key patterns', error);
       return [];
     }
   }

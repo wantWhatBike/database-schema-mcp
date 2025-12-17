@@ -14,6 +14,25 @@ import type {
 export class SQLiteConnector extends DatabaseConnector {
   private db: Database.Database | null = null;
 
+  /**
+   * Safely escape SQLite identifier for use in PRAGMA statements.
+   * PRAGMA statements don't support parameter binding, so we must use string interpolation.
+   *
+   * Security measures:
+   * 1. Only called after verifying table exists via parameterized query
+   * 2. Escapes double quotes by doubling them (SQL standard)
+   * 3. Wraps identifier in double quotes
+   *
+   * @param identifier Table or index name from database
+   * @returns Safely escaped identifier
+   */
+  private escapeSQLiteIdentifier(identifier: string): string {
+    // Escape double quotes by doubling them (SQL standard)
+    const escaped = identifier.replace(/"/g, '""');
+    // Wrap in double quotes
+    return `"${escaped}"`;
+  }
+
   async connect(): Promise<void> {
     try {
       // SQLite uses file path in config.database or config.connectionString
@@ -95,6 +114,9 @@ export class SQLiteConnector extends DatabaseConnector {
   async getTableDetails(tableName: string): Promise<TableDetails | null> {
     this.ensureConnected();
 
+    // Security check: Verify table exists using parameterized query
+    // This prevents SQL injection and ensures tableName is a valid table in the database
+    // All subsequent PRAGMA calls use this verified tableName with proper escaping
     const tableExists = this.db!
       .prepare(
         `
@@ -124,13 +146,10 @@ export class SQLiteConnector extends DatabaseConnector {
   }
 
   private async getColumns(tableName: string): Promise<ColumnInfo[]> {
-    // Validate tableName to prevent SQL injection (alphanumeric, underscore, hyphen only)
-    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
-      throw new Error('Invalid table name');
-    }
-
-    // PRAGMA statements don't support parameter binding, so we validate the input instead
-    const columns = this.db!.prepare(`PRAGMA table_info("${tableName}")`).all() as any[];
+    // Security: tableName is already verified to exist via parameterized query in getTableDetails
+    // Use safe escaping for PRAGMA statement (which doesn't support parameter binding)
+    const escapedTableName = this.escapeSQLiteIdentifier(tableName);
+    const columns = this.db!.prepare(`PRAGMA table_info(${escapedTableName})`).all() as any[];
 
     return columns.map((col) => ({
       name: col.name,
@@ -143,24 +162,17 @@ export class SQLiteConnector extends DatabaseConnector {
   }
 
   private async getIndexes(tableName: string): Promise<IndexInfo[]> {
-    // Validate tableName to prevent SQL injection
-    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
-      throw new Error('Invalid table name');
-    }
-
-    // PRAGMA statements don't support parameter binding, so we validate the input instead
-    const indexList = this.db!.prepare(`PRAGMA index_list("${tableName}")`).all() as any[];
+    // Security: tableName is already verified to exist via parameterized query in getTableDetails
+    const escapedTableName = this.escapeSQLiteIdentifier(tableName);
+    const indexList = this.db!.prepare(`PRAGMA index_list(${escapedTableName})`).all() as any[];
 
     const indexes: IndexInfo[] = [];
 
     for (const idx of indexList) {
-      // Validate index name as well
-      if (!/^[a-zA-Z0-9_-]+$/.test(idx.name)) {
-        continue; // Skip invalid index names
-      }
-
+      // Index names come from database, but we still escape them for safety
+      const escapedIndexName = this.escapeSQLiteIdentifier(idx.name);
       const indexInfo = this.db!
-        .prepare(`PRAGMA index_info("${idx.name}")`)
+        .prepare(`PRAGMA index_info(${escapedIndexName})`)
         .all() as any[];
 
       const columns = indexInfo.map((col) => col.name);
@@ -189,13 +201,9 @@ export class SQLiteConnector extends DatabaseConnector {
   }
 
   private async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-    // Validate tableName to prevent SQL injection
-    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
-      throw new Error('Invalid table name');
-    }
-
-    // PRAGMA statements don't support parameter binding, so we validate the input instead
-    const fkList = this.db!.prepare(`PRAGMA foreign_key_list("${tableName}")`).all() as any[];
+    // Security: tableName is already verified to exist via parameterized query in getTableDetails
+    const escapedTableName = this.escapeSQLiteIdentifier(tableName);
+    const fkList = this.db!.prepare(`PRAGMA foreign_key_list(${escapedTableName})`).all() as any[];
 
     const fkMap = new Map<number, ForeignKeyInfo>();
 
@@ -234,21 +242,8 @@ export class SQLiteConnector extends DatabaseConnector {
       definition: row.definition || '',
     }));
   }
-
-  private async getAllTableDetails(): Promise<TableDetails[]> {
-    const tables = await this.listTables();
-    const details: TableDetails[] = [];
-
-    for (const table of tables) {
-      const detail = await this.getTableDetails(table.name);
-      if (detail) {
-        details.push(detail);
-      }
-    }
-
-    return details;
-  }
 }
 
 // Register this connector
 registerConnector('sqlite', SQLiteConnector);
+

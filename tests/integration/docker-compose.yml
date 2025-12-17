@@ -1,10 +1,14 @@
 version: '3.8'
 
+# Integration Test Environment - All databases in standalone/single-node mode
+# This docker-compose file is designed for local testing only
+# NO distributed deployment configurations
+
 services:
-  # MySQL
+  # MySQL - Single Instance
   mysql:
     image: mysql:8.0
-    container_name: db-schema-mcp-mysql
+    container_name: mcp-integration-mysql
     environment:
       MYSQL_ROOT_PASSWORD: test_password
       MYSQL_DATABASE: testdb
@@ -15,11 +19,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # PostgreSQL
+  # PostgreSQL - Single Instance
   postgres:
     image: postgres:15
-    container_name: db-schema-mcp-postgres
+    container_name: mcp-integration-postgres
     environment:
       POSTGRES_PASSWORD: test_password
       POSTGRES_DB: testdb
@@ -30,42 +36,50 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # OpenGauss (compatible with PostgreSQL)
+  # OpenGauss - Single Instance
   opengauss:
     image: enmotech/opengauss:3.1.0
-    container_name: db-schema-mcp-opengauss
+    container_name: mcp-integration-opengauss
     environment:
       GS_PASSWORD: test_password
       GS_DB: testdb
     ports:
       - "5433:5432"
+    privileged: true
     healthcheck:
-      test: ["CMD-SHELL", "gsql -d postgres -U gaussdb -c 'SELECT 1'"]
+      test: ["CMD-SHELL", "gsql -d postgres -U gaussdb -c 'SELECT 1'" ]
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # MongoDB
+  # MongoDB - Single Instance (no replica set)
   mongodb:
     image: mongo:6
-    container_name: db-schema-mcp-mongodb
+    container_name: mcp-integration-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: test_password
       MONGO_INITDB_DATABASE: testdb
     ports:
       - "27017:27017"
+    command: ["mongod", "--bind_ip_all"]
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # Redis
+  # Redis - Single Instance (no cluster)
   redis:
     image: redis:7
-    container_name: db-schema-mcp-redis
+    container_name: mcp-integration-redis
     command: redis-server --requirepass test_password
     ports:
       - "6379:6379"
@@ -74,28 +88,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # Memcached
+  # Memcached - Single Instance
   memcached:
     image: memcached:1.6-alpine
-    container_name: db-schema-mcp-memcached
+    container_name: mcp-integration-memcached
     ports:
       - "11211:11211"
     command: memcached -m 64
+    networks:
+      - integration-network
 
-  # Kafka (with Zookeeper)
+  # Kafka - Single Broker (with Zookeeper)
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: db-schema-mcp-zookeeper
+    container_name: mcp-integration-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - integration-network
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: db-schema-mcp-kafka
+    container_name: mcp-integration-kafka
     depends_on:
       - zookeeper
     ports:
@@ -112,11 +132,13 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    networks:
+      - integration-network
 
-  # RabbitMQ
+  # RabbitMQ - Single Instance (no cluster)
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: db-schema-mcp-rabbitmq
+    container_name: mcp-integration-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: test_password
@@ -128,11 +150,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - integration-network
 
-  # Elasticsearch
+  # Elasticsearch - Single Node
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: db-schema-mcp-elasticsearch
+    container_name: mcp-integration-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -145,17 +169,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # etcd
+  # etcd - Single Node
   etcd:
     image: quay.io/coreos/etcd:v3.5.11
-    container_name: db-schema-mcp-etcd
+    container_name: mcp-integration-etcd
     environment:
       - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
       - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
     ports:
       - "2379:2379"
-      - "2380:2380"
     command:
       - /usr/local/bin/etcd
       - --name=etcd0
@@ -165,11 +190,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # ClickHouse
+  # ClickHouse - Single Instance
   clickhouse:
     image: clickhouse/clickhouse-server:latest
-    container_name: db-schema-mcp-clickhouse
+    container_name: mcp-integration-clickhouse
     environment:
       CLICKHOUSE_DB: testdb
       CLICKHOUSE_USER: default
@@ -182,21 +209,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - integration-network
 
-  # Milvus (Standalone)
+  # Milvus - Standalone Mode (single instance with dependencies)
   milvus-etcd:
     image: quay.io/coreos/etcd:v3.5.5
-    container_name: db-schema-mcp-milvus-etcd
+    container_name: mcp-integration-milvus-etcd
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
       - ETCD_QUOTA_BACKEND_BYTES=4294967296
       - ETCD_SNAPSHOT_COUNT=50000
     command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - integration-network
 
   milvus-minio:
     image: minio/minio:RELEASE.2023-03-20T20-16-18Z
-    container_name: db-schema-mcp-milvus-minio
+    container_name: mcp-integration-milvus-minio
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -206,10 +237,12 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    networks:
+      - integration-network
 
   milvus:
     image: milvusdb/milvus:v2.3.3
-    container_name: db-schema-mcp-milvus
+    container_name: mcp-integration-milvus
     depends_on:
       - milvus-etcd
       - milvus-minio
@@ -226,4 +259,9 @@ services:
       start_period: 90s
       timeout: 20s
       retries: 3
+    networks:
+      - integration-network
 
+networks:
+  integration-network:
+    driver: bridge

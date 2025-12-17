@@ -135,7 +135,7 @@ export class MilvusConnector extends DatabaseConnector {
           rowCount,
         });
       } catch (error) {
-        console.error(`Error getting stats for collection ${collName}:`, error);
+        this.logError(`Error getting stats for collection ${collName}`, error);
       }
     }
 
@@ -178,7 +178,7 @@ export class MilvusConnector extends DatabaseConnector {
         foreignKeys: [],
       };
     } catch (error) {
-      console.error(`Error getting details for collection ${tableName}:`, error);
+      this.logError(`Error getting details for collection ${tableName}`, error);
       return null;
     }
   }
@@ -264,7 +264,7 @@ export class MilvusConnector extends DatabaseConnector {
           shardsNum: describeResult.shards_num,
         });
       } catch (error) {
-        console.error(`Error getting collection info for ${table.name}:`, error);
+        this.logError(`Error getting collection info for ${table.name}`, error);
       }
     }
 

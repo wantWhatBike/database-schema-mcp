@@ -165,7 +165,7 @@ export class ElasticsearchConnector extends DatabaseConnector {
         comment: `Shards: ${indexSettings?.index?.number_of_shards}, Replicas: ${indexSettings?.index?.number_of_replicas}`,
       };
     } catch (error) {
-      console.error(`Error getting details for index ${tableName}:`, error);
+      this.logError(`Error getting details for index ${tableName}`, error);
       return null;
     }
   }
@@ -241,7 +241,7 @@ export class ElasticsearchConnector extends DatabaseConnector {
           settings: indexSettings,
         });
       } catch (error) {
-        console.error(`Error getting info for index ${index.index}:`, error);
+        this.logError(`Error getting info for index ${index.index}`, error);
       }
     }
 

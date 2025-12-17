@@ -207,7 +207,7 @@ export class MemcachedConnector extends DatabaseConnector {
         },
       ];
     } catch (error) {
-      console.error('Error analyzing Memcached keys:', error);
+      this.logError('Error analyzing Memcached keys', error);
       return [];
     }
   }

@@ -294,21 +294,8 @@ export class OracleConnector extends DatabaseConnector {
       schema: this.schema,
     }));
   }
-
-  private async getAllTableDetails(): Promise<TableDetails[]> {
-    const tables = await this.listTables();
-    const details: TableDetails[] = [];
-
-    for (const table of tables) {
-      const detail = await this.getTableDetails(table.name);
-      if (detail) {
-        details.push(detail);
-      }
-    }
-
-    return details;
-  }
 }
 
 // Register this connector
 registerConnector('oracle', OracleConnector);
+

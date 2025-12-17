@@ -235,9 +235,24 @@ export class OpenGaussConnector extends DatabaseConnector {
         foreignKeys,
       };
     } catch (error) {
-      console.error(`Error getting table details for ${tableName}:`, error);
+      this.logError(`Error getting table details for ${tableName}`, error);
       return null;
     }
+  }
+
+  /**
+   * Escape special LIKE pattern characters for use in ILIKE queries.
+   * Escapes % and _ characters so they're treated literally, not as wildcards.
+   *
+   * @param searchTerm The user's search term
+   * @returns Escaped search term safe for LIKE patterns
+   */
+  private escapeLikePattern(searchTerm: string): string {
+    // Escape backslash first, then % and _
+    return searchTerm
+      .replace(/\\/g, '\\\\')  // \ → \\
+      .replace(/%/g, '\\%')    // % → \%
+      .replace(/_/g, '\\_');   // _ → \_
   }
 
   async searchColumns(columnName: string): Promise<string[]> {
@@ -247,14 +262,17 @@ export class OpenGaussConnector extends DatabaseConnector {
 
     const schema = this.config.schema || 'public';
 
+    // Escape special LIKE characters to treat them literally
+    const escapedColumnName = this.escapeLikePattern(columnName);
+
     const result = await this.pool.query(
       `
       SELECT DISTINCT table_name
       FROM information_schema.columns
-      WHERE table_schema = $1 AND column_name ILIKE $2
+      WHERE table_schema = $1 AND column_name ILIKE $2 ESCAPE '\\'
       ORDER BY table_name
     `,
-      [schema, `%${columnName}%`]
+      [schema, `%${escapedColumnName}%`]
     );
 
     return result.rows.map((row) => row.table_name);

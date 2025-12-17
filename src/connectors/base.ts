@@ -18,6 +18,53 @@ export abstract class DatabaseConnector {
   }
 
   /**
+   * Log an error with consistent formatting
+   * @param context Description of where the error occurred
+   * @param error The error object or message
+   */
+  protected logError(context: string, error: unknown): void {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[${this.config.type}] ${context}:`, errorMessage);
+  }
+
+  /**
+   * Format error message for throwing
+   * @param context Description of where the error occurred
+   * @param error The error object or message
+   * @returns Formatted error message
+   */
+  protected formatErrorMessage(context: string, error: unknown): string {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return `${context}: ${errorMessage}`;
+  }
+
+  /**
+   * Get all table details for tables in the database.
+   * This is a helper method that calls getTableDetails for each table.
+   * Can be used by connectors that need to fetch all table details.
+   *
+   * @returns Array of table details
+   */
+  protected async getAllTableDetails(): Promise<TableDetails[]> {
+    const tables = await this.listTables();
+    const details: TableDetails[] = [];
+
+    for (const table of tables) {
+      try {
+        const detail = await this.getTableDetails(table.name);
+        if (detail) {
+          details.push(detail);
+        }
+      } catch (error) {
+        // Log error but continue with other tables
+        this.logError(`Error getting details for table ${table.name}`, error);
+      }
+    }
+
+    return details;
+  }
+
+  /**
    * Establish connection to the database
    * @throws Error if connection fails
    */
