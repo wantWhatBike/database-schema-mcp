@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { default as Redis } from 'ioredis';
 import { DatabaseConnector } from './base.js';
 import { registerConnector } from './factory.js';
 import type {
@@ -9,7 +9,7 @@ import type {
 } from '../types/schema.js';
 
 export class RedisConnector extends DatabaseConnector {
-  private client: Redis | null = null;
+  private client: any = null;
   private maxKeys: number;
   private keyPattern: string;
 
@@ -21,6 +21,7 @@ export class RedisConnector extends DatabaseConnector {
 
   async connect(): Promise<void> {
     try {
+      // @ts-ignore - Redis constructor exists
       this.client = new Redis({
         host: this.config.host || 'localhost',
         port: this.config.port || 6379,
@@ -183,27 +184,76 @@ export class RedisConnector extends DatabaseConnector {
     // Extract pattern from key
     // Examples:
     //   "user:123" -> "user:*"
+    //   "user:1:name" -> "user:*"
     //   "session:abc:data" -> "session:*"
     //   "cache_product_456" -> "cache_product_*"
+    //   "user123" -> "user*" (number suffix)
 
-    // Split by common separators
+    // Pattern 1: Keys with common separators (: _ - .)
     const separators = [':', '_', '-', '.'];
     for (const sep of separators) {
       if (key.includes(sep)) {
         const parts = key.split(sep);
-        // Replace last part (usually an ID) with *
-        if (parts.length > 1) {
-          // Check if last part looks like an ID (number, UUID, etc.)
-          const lastPart = parts[parts.length - 1];
-          if (/^[0-9a-f-]+$/i.test(lastPart) || /^\d+$/.test(lastPart)) {
-            parts[parts.length - 1] = '*';
-            return parts.join(sep);
+        let foundId = false;
+
+        // Replace numeric or UUID-like parts with *, and once we find an ID,
+        // replace everything after it with *
+        const patternParts: string[] = [];
+
+        for (let index = 0; index < parts.length; index++) {
+          const part = parts[index];
+
+          if (foundId) {
+            // Once we found an ID, replace all subsequent parts with *
+            // and don't add more parts
+            break;
           }
+
+          // Check if this part looks like an ID
+          const isNumeric = /^[0-9]+$/.test(part);
+          const isHexId = /^[0-9a-f]{6,}$/i.test(part);
+          const isLongAlphanumeric = /^[0-9a-z]{10,}$/i.test(part);
+          const hasNumberSuffix = /\d+$/.test(part) && part.length > 2; // e.g., game1, page1, post1
+
+          // Don't treat the first part as ID to ensure we have a meaningful prefix
+          if ((isNumeric || isHexId || isLongAlphanumeric || hasNumberSuffix) && index > 0) {
+            patternParts.push('*');
+            foundId = true;
+          } else {
+            patternParts.push(part);
+          }
+        }
+
+        const pattern = patternParts.join(sep);
+        // Only return pattern if it's different from original (we found an ID)
+        if (pattern !== key && patternParts.includes('*')) {
+          return pattern;
         }
       }
     }
 
-    // If no pattern found, return the key itself
+    // Pattern 2: Keys with number suffix (no separator)
+    // e.g., "user123", "cache456"
+    const numberSuffixMatch = key.match(/^([a-z_]+)(\d+)$/i);
+    if (numberSuffixMatch) {
+      return numberSuffixMatch[1] + '*';
+    }
+
+    // Pattern 3: Keys with UUID-like patterns (no separator)
+    // e.g., "keyabc123def456"
+    if (/[a-z]+[0-9a-f]{16,}/i.test(key)) {
+      // Has long hex sequence
+      return key.replace(/[0-9a-f]{8,}/gi, '*');
+    }
+
+    // Pattern 4: If no pattern detected, group by prefix
+    // Take first 3-5 characters as prefix
+    if (key.length > 5) {
+      const prefix = key.substring(0, Math.min(5, Math.floor(key.length / 2)));
+      return prefix + '*';
+    }
+
+    // Fallback: return the key itself
     return key;
   }
 }

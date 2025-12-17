@@ -1,3 +1,4 @@
+// @ts-ignore - oracledb types may not be available
 import oracledb from 'oracledb';
 import { DatabaseConnector } from './base.js';
 import { registerConnector } from './factory.js';

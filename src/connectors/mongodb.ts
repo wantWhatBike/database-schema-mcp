@@ -101,11 +101,28 @@ export class MongoDBConnector extends DatabaseConnector {
     const details = await this.getCollectionDetails(tableName);
 
     // Convert MongoDB collection details to TableDetails format
+    // Map inferred fields to columns for better compatibility
+    const columns = details.fields.map(field => ({
+      name: field.name,
+      // Combine all types into a single type string
+      type: field.types.map(t => `${t.type}(${t.percentage}%)`).join(' | '),
+      nullable: field.occurrence < 100, // If not in all documents, it's nullable
+      comment: `Occurs in ${field.occurrence}% of documents`,
+    }));
+
+    // Convert MongoDB indexes to IndexInfo format
+    const indexes = details.indexes.map(idx => ({
+      name: idx.name,
+      columns: Object.keys(idx.keys),
+      isUnique: idx.unique || false,
+      isPrimary: idx.name === '_id_',
+    }));
+
     return {
       name: tableName,
       type: 'collection',
-      columns: [],
-      indexes: [],
+      columns,
+      indexes,
       foreignKeys: [],
       rowCount: details.documentCount,
     };

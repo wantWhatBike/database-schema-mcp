@@ -212,10 +212,10 @@ export class PostgreSQLConnector extends DatabaseConnector {
       `
       SELECT
         i.relname as index_name,
-        a.attname as column_name,
         ix.indisunique as is_unique,
         ix.indisprimary as is_primary,
-        am.amname as index_type
+        am.amname as index_type,
+        ARRAY_AGG(a.attname ORDER BY array_position(ix.indkey::integer[], a.attnum::integer)) as column_names
       FROM pg_class t
       JOIN pg_index ix ON t.oid = ix.indrelid
       JOIN pg_class i ON i.oid = ix.indexrelid
@@ -223,27 +223,19 @@ export class PostgreSQLConnector extends DatabaseConnector {
       JOIN pg_namespace n ON t.relnamespace = n.oid
       JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
       WHERE n.nspname = $1 AND t.relname = $2
-      ORDER BY i.relname, a.attnum
+      GROUP BY i.relname, ix.indisunique, ix.indisprimary, am.amname, ix.indkey
+      ORDER BY i.relname
       `,
       [this.schema, tableName]
     );
 
-    const indexMap = new Map<string, IndexInfo>();
-
-    for (const row of result.rows) {
-      if (!indexMap.has(row.index_name)) {
-        indexMap.set(row.index_name, {
-          name: row.index_name,
-          columns: [],
-          isUnique: row.is_unique,
-          isPrimary: row.is_primary,
-          type: row.index_type,
-        });
-      }
-      indexMap.get(row.index_name)!.columns.push(row.column_name);
-    }
-
-    return Array.from(indexMap.values());
+    return result.rows.map((row) => ({
+      name: row.index_name,
+      columns: row.column_names,
+      isUnique: row.is_unique,
+      isPrimary: row.is_primary,
+      type: row.index_type,
+    }));
   }
 
   private async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {

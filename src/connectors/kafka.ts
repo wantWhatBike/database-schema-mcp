@@ -55,9 +55,25 @@ export class KafkaConnector extends DatabaseConnector {
   }
 
   protected async getDatabaseVersion(): Promise<string | undefined> {
-    // Kafka doesn't have a direct version query
-    // Could potentially get from broker metadata
-    return 'Kafka';
+    // Get Kafka broker version from cluster metadata
+    this.ensureConnected();
+
+    try {
+      const cluster = await this.admin!.describeCluster();
+      // Try to extract version from broker information
+      if (cluster.brokers && cluster.brokers.length > 0) {
+        // KafkaJS doesn't directly expose broker version in describeCluster
+        // We can infer from API versions, but for now return Kafka with controller info
+        const controller = cluster.brokers.find(b => b.nodeId === cluster.controller);
+        if (controller) {
+          return `Kafka (Controller: ${controller.host}:${controller.port})`;
+        }
+        return `Kafka (${cluster.brokers.length} brokers)`;
+      }
+      return 'Kafka';
+    } catch (error) {
+      return 'Kafka';
+    }
   }
 
   async getSchema(): Promise<SchemaInfo> {
@@ -126,6 +142,7 @@ export class KafkaConnector extends DatabaseConnector {
             name: topicName,
           },
         ],
+        includeSynonyms: false,
       });
 
       const config: Record<string, string> = {};

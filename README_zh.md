@@ -8,10 +8,13 @@
 
 ## 功能特性
 
-- **多数据库支持**：连接 7+ 种数据库类型
-  - 关系型：MySQL、PostgreSQL、SQLite、Oracle
-  - NoSQL：MongoDB、Redis
-  - 消息队列：Kafka
+- **多数据库支持**：连接 14+ 种数据库类型
+  - 关系型：MySQL、PostgreSQL、OpenGauss、SQLite、Oracle、ClickHouse
+  - NoSQL：MongoDB、Redis、Memcached
+  - 消息队列：Kafka、RabbitMQ
+  - 搜索/分析：Elasticsearch
+  - 键值存储：etcd
+  - 向量数据库：Milvus
 
 - **全面的 Schema 提取**：
   - 表、列、数据类型
@@ -175,6 +178,22 @@ DB_SCHEMA_CONFIG=/path/to/config.json npm start
 }
 ```
 
+### OpenGauss
+
+OpenGauss 兼容 PostgreSQL 协议：
+
+```json
+{
+  "type": "opengauss",
+  "host": "localhost",
+  "port": 5433,
+  "database": "mydb",
+  "user": "gaussdb",
+  "password": "password",
+  "schema": "public"
+}
+```
+
 ### SQLite
 
 ```json
@@ -228,6 +247,17 @@ DB_SCHEMA_CONFIG=/path/to/config.json npm start
 
 **键模式分析：** 扫描最多 `maxKeys` 个匹配 `keyPattern` 的键，以识别命名模式和数据类型。
 
+### Memcached
+
+```json
+{
+  "type": "memcached",
+  "servers": ["localhost:11211"]
+}
+```
+
+**注意：** Memcached 不支持键枚举，连接器仅提供缓存统计信息。
+
 ### Kafka
 
 ```json
@@ -235,6 +265,111 @@ DB_SCHEMA_CONFIG=/path/to/config.json npm start
   "type": "kafka",
   "brokers": ["localhost:9092"],
   "clientId": "database-schema-mcp"
+}
+```
+
+### RabbitMQ
+
+```json
+{
+  "type": "rabbitmq",
+  "host": "localhost",
+  "port": 5672,
+  "user": "guest",
+  "password": "password",
+  "vhost": "/"
+}
+```
+
+**注意：** 需要启用 RabbitMQ Management API 才能完整列出队列/交换机。
+
+### Elasticsearch
+
+```json
+{
+  "type": "elasticsearch",
+  "node": "http://localhost:9200"
+}
+```
+
+使用认证：
+
+```json
+{
+  "type": "elasticsearch",
+  "nodes": ["http://localhost:9200"],
+  "auth": {
+    "username": "elastic",
+    "password": "password"
+  }
+}
+```
+
+Elastic Cloud：
+
+```json
+{
+  "type": "elasticsearch",
+  "cloudId": "your-cloud-id",
+  "auth": {
+    "apiKey": "your-api-key"
+  }
+}
+```
+
+### etcd
+
+```json
+{
+  "type": "etcd",
+  "hosts": ["localhost:2379"],
+  "prefix": "/",
+  "maxKeysToScan": 1000
+}
+```
+
+使用认证：
+
+```json
+{
+  "type": "etcd",
+  "hosts": ["localhost:2379"],
+  "username": "root",
+  "password": "password"
+}
+```
+
+### ClickHouse
+
+```json
+{
+  "type": "clickhouse",
+  "host": "localhost",
+  "port": 8123,
+  "database": "default",
+  "username": "default",
+  "password": "password"
+}
+```
+
+### Milvus
+
+```json
+{
+  "type": "milvus",
+  "address": "localhost:19530"
+}
+```
+
+使用认证：
+
+```json
+{
+  "type": "milvus",
+  "address": "localhost:19530",
+  "username": "root",
+  "password": "password",
+  "secure": false
 }
 ```
 
@@ -296,6 +431,29 @@ database-schema-mcp/
 
 ## 开发
 
+### 使用 Makefile（推荐）
+
+项目包含 Makefile 用于常见开发任务：
+
+```bash
+# 查看所有可用命令
+make help
+
+# 安装依赖
+make install
+
+# 构建项目
+make build
+
+# 监视模式（更改时自动重新构建）
+make dev
+
+# 快速启动（安装 + 构建 + 启动）
+make start
+```
+
+### 直接使用 npm
+
 ```bash
 # 安装依赖
 npm install
@@ -309,11 +467,54 @@ npm run dev
 
 ## 测试
 
-运行测试套件：
+### 使用 Makefile 快速测试
+
+```bash
+# 运行所有测试（单元测试 + 集成测试）
+make test
+
+# 仅运行单元测试（快速，无需数据库）
+make test-unit
+
+# 运行集成测试（使用测试数据库）
+make test-integration
+
+# 监视模式运行测试
+make test-watch
+
+# 运行测试并生成覆盖率报告
+make test-coverage
+```
+
+### 管理测试数据库
+
+项目使用 Docker Compose 提供测试数据库：
+
+```bash
+# 启动所有测试数据库（MySQL、PostgreSQL、MongoDB、Redis、Kafka）
+make test-db-up
+
+# 停止并删除测试数据库
+make test-db-down
+
+# 查看测试数据库日志
+make test-db-logs
+
+# 检查测试数据库状态
+make test-db-status
+```
+
+### 直接使用 npm
 
 ```bash
 # 运行所有测试
 npm test
+
+# 仅运行单元测试
+npm run test:unit
+
+# 仅运行集成测试（需要数据库）
+npm run test:integration
 
 # 监视模式运行测试
 npm run test:watch
@@ -322,9 +523,17 @@ npm run test:watch
 npm run test:coverage
 ```
 
-项目包含：
+### 测试覆盖
+
+项目包含全面的测试：
 - **单元测试**：配置加载器、连接器工厂、Schema 格式化器
-- **集成测试**：SQLite 连接器真实数据库操作
+- **集成测试**：所有数据库连接器的真实数据库操作测试
+  - MySQL 连接器
+  - PostgreSQL 连接器
+  - SQLite 连接器
+  - MongoDB 连接器
+  - Redis 连接器
+  - Kafka 连接器
 
 详细测试文档请参考 [TESTING.md](TESTING.md)。
 

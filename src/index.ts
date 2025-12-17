@@ -13,11 +13,18 @@ import { getSupportedDatabaseTypes } from './connectors/factory.js';
 // Import all connectors to register them
 import './connectors/mysql.js';
 import './connectors/postgresql.js';
+import './connectors/opengauss.js';
 import './connectors/sqlite.js';
 import './connectors/oracle.js';
 import './connectors/mongodb.js';
 import './connectors/redis.js';
+import './connectors/memcached.js';
 import './connectors/kafka.js';
+import './connectors/rabbitmq.js';
+import './connectors/elasticsearch.js';
+import './connectors/etcd.js';
+import './connectors/clickhouse.js';
+import './connectors/milvus.js';
 
 const CONFIG_PATH = process.env.DB_SCHEMA_CONFIG || './config.json';
 

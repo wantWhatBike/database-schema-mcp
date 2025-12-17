@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { unlink } from 'fs/promises';
+import { existsSync } from 'fs';
 import Database from 'better-sqlite3';
 import { SQLiteConnector } from '../src/connectors/sqlite.js';
 import type { DatabaseConfig } from '../src/types/schema.js';
@@ -8,7 +9,16 @@ describe('SQLite Connector Integration Tests', () => {
   const dbPath = './test-db.sqlite';
   let db: Database.Database;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Ensure old database is removed before creating new one
+    try {
+      if (existsSync(dbPath)) {
+        await unlink(dbPath);
+      }
+    } catch {
+      // Ignore
+    }
+
     // Create test database
     db = new Database(dbPath);
 

@@ -8,10 +8,13 @@ A Model Context Protocol (MCP) server for extracting database schema information
 
 ## Features
 
-- **Multi-Database Support**: Connect to 7+ database types
-  - Relational: MySQL, PostgreSQL, SQLite, Oracle
-  - NoSQL: MongoDB, Redis
-  - Message Queues: Kafka
+- **Multi-Database Support**: Connect to 14+ database types
+  - Relational: MySQL, PostgreSQL, OpenGauss, SQLite, Oracle, ClickHouse
+  - NoSQL: MongoDB, Redis, Memcached
+  - Message Queues: Kafka, RabbitMQ
+  - Search/Analytics: Elasticsearch
+  - Key-Value Stores: etcd
+  - Vector Databases: Milvus
 
 - **Comprehensive Schema Extraction**:
   - Tables, columns, data types
@@ -175,6 +178,22 @@ Or use connection string:
 }
 ```
 
+### OpenGauss
+
+OpenGauss is compatible with PostgreSQL protocol:
+
+```json
+{
+  "type": "opengauss",
+  "host": "localhost",
+  "port": 5433,
+  "database": "mydb",
+  "user": "gaussdb",
+  "password": "password",
+  "schema": "public"
+}
+```
+
 ### SQLite
 
 ```json
@@ -228,6 +247,17 @@ Or use connection string:
 
 **Key Pattern Analysis:** Scans up to `maxKeys` keys matching `keyPattern` to identify naming patterns and data types.
 
+### Memcached
+
+```json
+{
+  "type": "memcached",
+  "servers": ["localhost:11211"]
+}
+```
+
+**Note**: Memcached does not support key enumeration. The connector provides cache statistics only.
+
 ### Kafka
 
 ```json
@@ -235,6 +265,111 @@ Or use connection string:
   "type": "kafka",
   "brokers": ["localhost:9092"],
   "clientId": "database-schema-mcp"
+}
+```
+
+### RabbitMQ
+
+```json
+{
+  "type": "rabbitmq",
+  "host": "localhost",
+  "port": 5672,
+  "user": "guest",
+  "password": "password",
+  "vhost": "/"
+}
+```
+
+**Note**: Requires RabbitMQ Management API enabled for full queue/exchange listing.
+
+### Elasticsearch
+
+```json
+{
+  "type": "elasticsearch",
+  "node": "http://localhost:9200"
+}
+```
+
+With authentication:
+
+```json
+{
+  "type": "elasticsearch",
+  "nodes": ["http://localhost:9200"],
+  "auth": {
+    "username": "elastic",
+    "password": "password"
+  }
+}
+```
+
+Elastic Cloud:
+
+```json
+{
+  "type": "elasticsearch",
+  "cloudId": "your-cloud-id",
+  "auth": {
+    "apiKey": "your-api-key"
+  }
+}
+```
+
+### etcd
+
+```json
+{
+  "type": "etcd",
+  "hosts": ["localhost:2379"],
+  "prefix": "/",
+  "maxKeysToScan": 1000
+}
+```
+
+With authentication:
+
+```json
+{
+  "type": "etcd",
+  "hosts": ["localhost:2379"],
+  "username": "root",
+  "password": "password"
+}
+```
+
+### ClickHouse
+
+```json
+{
+  "type": "clickhouse",
+  "host": "localhost",
+  "port": 8123,
+  "database": "default",
+  "username": "default",
+  "password": "password"
+}
+```
+
+### Milvus
+
+```json
+{
+  "type": "milvus",
+  "address": "localhost:19530"
+}
+```
+
+With authentication:
+
+```json
+{
+  "type": "milvus",
+  "address": "localhost:19530",
+  "username": "root",
+  "password": "password",
+  "secure": false
 }
 ```
 
@@ -296,6 +431,29 @@ database-schema-mcp/
 
 ## Development
 
+### Using Makefile (Recommended)
+
+The project includes a Makefile for common development tasks:
+
+```bash
+# View all available commands
+make help
+
+# Install dependencies
+make install
+
+# Build the project
+make build
+
+# Run in watch mode (auto-rebuild on changes)
+make dev
+
+# Quick start (install + build + start)
+make start
+```
+
+### Using npm directly
+
 ```bash
 # Install dependencies
 npm install
@@ -309,11 +467,54 @@ npm run dev
 
 ## Testing
 
-Run the test suite:
+### Quick Testing with Makefile
+
+```bash
+# Run all tests (unit + integration)
+make test
+
+# Run only unit tests (fast, no databases required)
+make test-unit
+
+# Run integration tests with test databases
+make test-integration
+
+# Run tests in watch mode
+make test-watch
+
+# Run tests with coverage report
+make test-coverage
+```
+
+### Managing Test Databases
+
+The project uses Docker Compose to provide test databases:
+
+```bash
+# Start all test databases (MySQL, PostgreSQL, MongoDB, Redis, Kafka)
+make test-db-up
+
+# Stop and remove test databases
+make test-db-down
+
+# View test database logs
+make test-db-logs
+
+# Check test database status
+make test-db-status
+```
+
+### Using npm directly
 
 ```bash
 # Run all tests
 npm test
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests (requires databases)
+npm run test:integration
 
 # Run tests in watch mode
 npm run test:watch
@@ -322,9 +523,17 @@ npm run test:watch
 npm run test:coverage
 ```
 
-The project includes:
+### Test Coverage
+
+The project includes comprehensive tests:
 - **Unit tests**: Config loader, connector factory, schema formatter
-- **Integration tests**: SQLite connector with real database operations
+- **Integration tests**: All database connectors with real database operations
+  - MySQL connector
+  - PostgreSQL connector
+  - SQLite connector
+  - MongoDB connector
+  - Redis connector
+  - Kafka connector
 
 See [TESTING.md](TESTING.md) for detailed testing documentation.
 

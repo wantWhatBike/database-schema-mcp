@@ -3,8 +3,9 @@ import { DatabaseConnector } from './base.js';
 
 /**
  * Constructor type for database connectors
+ * Uses a more flexible type to allow specific config types
  */
-type ConnectorConstructor = new (config: DatabaseConfig) => DatabaseConnector;
+type ConnectorConstructor = new (config: any) => DatabaseConnector;
 
 /**
  * Registry of database connector constructors

@@ -124,7 +124,13 @@ export class SQLiteConnector extends DatabaseConnector {
   }
 
   private async getColumns(tableName: string): Promise<ColumnInfo[]> {
-    const columns = this.db!.prepare(`PRAGMA table_info(${tableName})`).all() as any[];
+    // Validate tableName to prevent SQL injection (alphanumeric, underscore, hyphen only)
+    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
+      throw new Error('Invalid table name');
+    }
+
+    // PRAGMA statements don't support parameter binding, so we validate the input instead
+    const columns = this.db!.prepare(`PRAGMA table_info("${tableName}")`).all() as any[];
 
     return columns.map((col) => ({
       name: col.name,
@@ -137,13 +143,24 @@ export class SQLiteConnector extends DatabaseConnector {
   }
 
   private async getIndexes(tableName: string): Promise<IndexInfo[]> {
-    const indexList = this.db!.prepare(`PRAGMA index_list(${tableName})`).all() as any[];
+    // Validate tableName to prevent SQL injection
+    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
+      throw new Error('Invalid table name');
+    }
+
+    // PRAGMA statements don't support parameter binding, so we validate the input instead
+    const indexList = this.db!.prepare(`PRAGMA index_list("${tableName}")`).all() as any[];
 
     const indexes: IndexInfo[] = [];
 
     for (const idx of indexList) {
+      // Validate index name as well
+      if (!/^[a-zA-Z0-9_-]+$/.test(idx.name)) {
+        continue; // Skip invalid index names
+      }
+
       const indexInfo = this.db!
-        .prepare(`PRAGMA index_info(${idx.name})`)
+        .prepare(`PRAGMA index_info("${idx.name}")`)
         .all() as any[];
 
       const columns = indexInfo.map((col) => col.name);
@@ -172,7 +189,13 @@ export class SQLiteConnector extends DatabaseConnector {
   }
 
   private async getForeignKeys(tableName: string): Promise<ForeignKeyInfo[]> {
-    const fkList = this.db!.prepare(`PRAGMA foreign_key_list(${tableName})`).all() as any[];
+    // Validate tableName to prevent SQL injection
+    if (!/^[a-zA-Z0-9_-]+$/.test(tableName)) {
+      throw new Error('Invalid table name');
+    }
+
+    // PRAGMA statements don't support parameter binding, so we validate the input instead
+    const fkList = this.db!.prepare(`PRAGMA foreign_key_list("${tableName}")`).all() as any[];
 
     const fkMap = new Map<number, ForeignKeyInfo>();
 

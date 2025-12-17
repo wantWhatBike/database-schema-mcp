@@ -21,6 +21,15 @@
       "type": "postgresql",
       "connectionString": "${POSTGRES_CONNECTION_STRING}"
     },
+    "my_opengauss": {
+      "type": "opengauss",
+      "host": "localhost",
+      "port": 5433,
+      "database": "testdb",
+      "user": "gaussdb",
+      "password": "${OPENGAUSS_PASSWORD}",
+      "schema": "public"
+    },
     "my_sqlite": {
       "type": "sqlite",
       "database": "/path/to/database.db"
@@ -57,10 +66,72 @@
       "maxKeys": 1000,
       "keyPattern": "*"
     },
+    "my_memcached": {
+      "type": "memcached",
+      "servers": ["localhost:11211"]
+    },
     "my_kafka": {
       "type": "kafka",
       "brokers": ["localhost:9092"],
       "clientId": "database-schema-mcp"
+    },
+    "my_rabbitmq": {
+      "type": "rabbitmq",
+      "host": "localhost",
+      "port": 5672,
+      "user": "guest",
+      "password": "${RABBITMQ_PASSWORD}",
+      "vhost": "/"
+    },
+    "my_elasticsearch": {
+      "type": "elasticsearch",
+      "node": "http://localhost:9200"
+    },
+    "my_elasticsearch_with_auth": {
+      "type": "elasticsearch",
+      "nodes": ["http://localhost:9200"],
+      "auth": {
+        "username": "elastic",
+        "password": "${ELASTICSEARCH_PASSWORD}"
+      }
+    },
+    "my_elasticsearch_cloud": {
+      "type": "elasticsearch",
+      "cloudId": "${ELASTIC_CLOUD_ID}",
+      "auth": {
+        "apiKey": "${ELASTIC_API_KEY}"
+      }
+    },
+    "my_etcd": {
+      "type": "etcd",
+      "hosts": ["localhost:2379"],
+      "prefix": "/",
+      "maxKeysToScan": 1000
+    },
+    "my_etcd_with_auth": {
+      "type": "etcd",
+      "hosts": ["localhost:2379"],
+      "username": "root",
+      "password": "${ETCD_PASSWORD}"
+    },
+    "my_clickhouse": {
+      "type": "clickhouse",
+      "host": "localhost",
+      "port": 8123,
+      "database": "default",
+      "username": "default",
+      "password": "${CLICKHOUSE_PASSWORD}"
+    },
+    "my_milvus": {
+      "type": "milvus",
+      "address": "localhost:19530"
+    },
+    "my_milvus_with_auth": {
+      "type": "milvus",
+      "address": "localhost:19530",
+      "username": "root",
+      "password": "${MILVUS_PASSWORD}",
+      "secure": false
     }
   }
 }
