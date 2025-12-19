@@ -16,7 +16,7 @@ import path from 'path';
 const configPath = path.join(__dirname, 'config.json');
 const testConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-const INTEGRATION_TIMEOUT = 30000;
+const INTEGRATION_TIMEOUT = 60000; // Increased timeout for Elasticsearch operations
 
 describe('Elasticsearch Integration Tests (Real Database)', () => {
   let connector: ElasticsearchConnector;
@@ -28,17 +28,28 @@ describe('Elasticsearch Integration Tests (Real Database)', () => {
     client = new Client({ node: config.node });
 
     // Clean up any existing test indices
-    const testIndices = ['test-users', 'test-products', 'test-orders'];
-    for (const index of testIndices) {
-      try {
-        await client.indices.delete({ index });
-      } catch (e) {
-        // Index might not exist, ignore
+    // Get all indices matching test-* pattern
+    try {
+      const indices = await client.cat.indices({ format: 'json' });
+      const testIndices = indices
+        .filter((idx: any) => idx.index.startsWith('test-'))
+        .map((idx: any) => idx.index);
+
+      if (testIndices.length > 0) {
+        for (const index of testIndices) {
+          try {
+            await client.indices.delete({ index });
+          } catch (e) {
+            // Ignore if index doesn't exist
+          }
+        }
       }
+    } catch (e) {
+      // Indices might not exist, ignore
     }
 
     // Wait for deletion to complete
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Create test indices with mappings
     await client.indices.create({
@@ -149,13 +160,24 @@ describe('Elasticsearch Integration Tests (Real Database)', () => {
       await connector.disconnect();
     }
     if (client) {
-      const testIndices = ['test-users', 'test-products', 'test-orders'];
-      for (const index of testIndices) {
-        try {
-          await client.indices.delete({ index });
-        } catch (e) {
-          // Ignore errors
+      // Delete all test indices by listing them first
+      try {
+        const indices = await client.cat.indices({ format: 'json' });
+        const testIndices = indices
+          .filter((idx: any) => idx.index.startsWith('test-'))
+          .map((idx: any) => idx.index);
+
+        if (testIndices.length > 0) {
+          for (const index of testIndices) {
+            try {
+              await client.indices.delete({ index });
+            } catch (e) {
+              // Ignore if index doesn't exist
+            }
+          }
         }
+      } catch (e) {
+        // Ignore errors
       }
       await client.close();
     }
@@ -303,6 +325,6 @@ describe('Elasticsearch Integration Tests (Real Database)', () => {
     const details = await connector.getTableDetails('test-nested');
     expect(details).toBeDefined();
 
-    await client.indices.delete({ index: 'test-nested' });
+    // No need to manually delete - afterEach will clean up all test-* indices
   }, INTEGRATION_TIMEOUT);
 });

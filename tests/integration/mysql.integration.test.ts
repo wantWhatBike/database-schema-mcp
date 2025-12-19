@@ -35,6 +35,8 @@ describe('MySQL Integration Tests (Real Database)', () => {
     });
 
     // Clean up any existing test tables
+    // Disable foreign key checks to allow dropping tables in any order
+    await connection.query('SET FOREIGN_KEY_CHECKS = 0');
     await connection.query(`
       DROP TABLE IF EXISTS order_items;
       DROP TABLE IF EXISTS orders;
@@ -43,6 +45,7 @@ describe('MySQL Integration Tests (Real Database)', () => {
       DROP VIEW IF EXISTS active_users;
       DROP PROCEDURE IF EXISTS get_user_count;
     `);
+    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 
     // Create test schema with full structure
     await connection.query(`
@@ -137,6 +140,8 @@ describe('MySQL Integration Tests (Real Database)', () => {
       await connector.disconnect();
     }
     if (connection) {
+      // Disable foreign key checks to allow dropping tables in any order
+      await connection.query('SET FOREIGN_KEY_CHECKS = 0');
       await connection.query(`
         DROP TABLE IF EXISTS order_items;
         DROP TABLE IF EXISTS orders;
@@ -145,6 +150,7 @@ describe('MySQL Integration Tests (Real Database)', () => {
         DROP VIEW IF EXISTS active_users;
         DROP PROCEDURE IF EXISTS get_user_count;
       `);
+      await connection.query('SET FOREIGN_KEY_CHECKS = 1');
       await connection.end();
     }
   }, INTEGRATION_TIMEOUT);

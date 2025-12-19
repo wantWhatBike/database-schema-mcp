@@ -16,7 +16,7 @@ import path from 'path';
 const configPath = path.join(__dirname, 'config.json');
 const testConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-const INTEGRATION_TIMEOUT = 30000;
+const INTEGRATION_TIMEOUT = 60000; // Increased timeout for MongoDB operations
 
 describe('MongoDB Integration Tests (Real Database)', () => {
   let connector: MongoDBConnector;
@@ -36,10 +36,31 @@ describe('MongoDB Integration Tests (Real Database)', () => {
     db = client.db(config.database);
 
     // Clean up existing test collections
+    // First, drop all indexes (except _id) to prevent conflicts
     const collections = await db.listCollections().toArray();
     for (const collection of collections) {
-      await db.collection(collection.name).drop();
+      try {
+        // Drop all indexes except the default _id index
+        await db.collection(collection.name).dropIndexes();
+      } catch (e) {
+        // Ignore errors - collection might not have indexes
+      }
     }
+
+    // Wait for index drops to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Now drop the collections
+    for (const collection of collections) {
+      try {
+        await db.collection(collection.name).drop();
+      } catch (e) {
+        // Ignore errors - collection might already be dropped
+      }
+    }
+
+    // Wait for cleanup to complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Create users collection with test data
     const usersCollection = db.collection('users');
@@ -149,13 +170,34 @@ describe('MongoDB Integration Tests (Real Database)', () => {
     if (connector) {
       await connector.disconnect();
     }
-    if (client) {
-      // Drop all test collections
-      const collections = await db.listCollections().toArray();
-      for (const collection of collections) {
-        await db.collection(collection.name).drop();
+    if (client && db) {
+      try {
+        // First drop all indexes to prevent conflicts
+        const collections = await db.listCollections().toArray();
+        for (const collection of collections) {
+          try {
+            await db.collection(collection.name).dropIndexes();
+          } catch (e) {
+            // Ignore errors
+          }
+        }
+
+        // Wait for index drops to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Then drop all collections
+        for (const collection of collections) {
+          try {
+            await db.collection(collection.name).drop();
+          } catch (e) {
+            // Ignore errors
+          }
+        }
+      } catch (e) {
+        // Ignore cleanup errors
+      } finally {
+        await client.close();
       }
-      await client.close();
     }
   }, INTEGRATION_TIMEOUT);
 
