@@ -103,7 +103,7 @@ export class PostgreSQLConnector extends DatabaseConnector {
       [this.schema]
     );
 
-    // Get row counts for each table using COUNT(*)
+    // Get row counts for each table
     const tables: TableInfo[] = [];
     for (const row of result.rows) {
       const rowCount = await this.getRowCount(row.name);

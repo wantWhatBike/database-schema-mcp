@@ -257,44 +257,6 @@ export class OpenGaussConnector extends DatabaseConnector {
     }
   }
 
-  /**
-   * Escape special LIKE pattern characters for use in ILIKE queries.
-   * Escapes % and _ characters so they're treated literally, not as wildcards.
-   *
-   * @param searchTerm The user's search term
-   * @returns Escaped search term safe for LIKE patterns
-   */
-  private escapeLikePattern(searchTerm: string): string {
-    // Escape backslash first, then % and _
-    return searchTerm
-      .replace(/\\/g, '\\\\')  // \ → \\
-      .replace(/%/g, '\\%')    // % → \%
-      .replace(/_/g, '\\_');   // _ → \_
-  }
-
-  async searchColumns(columnName: string): Promise<string[]> {
-    if (!this.pool) {
-      throw new Error('Not connected to OpenGauss');
-    }
-
-    const schema = this.config.schema || 'public';
-
-    // Escape special LIKE characters to treat them literally
-    const escapedColumnName = this.escapeLikePattern(columnName);
-
-    const result = await this.pool.query(
-      `
-      SELECT DISTINCT table_name
-      FROM information_schema.columns
-      WHERE table_schema = $1 AND column_name ILIKE $2 ESCAPE '\\'
-      ORDER BY table_name
-    `,
-      [schema, `%${escapedColumnName}%`]
-    );
-
-    return result.rows.map((row) => row.table_name);
-  }
-
   protected async getDatabaseVersion(): Promise<string | undefined> {
     if (!this.pool) {
       return undefined;

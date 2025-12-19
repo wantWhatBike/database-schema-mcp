@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "database-schema-mcp": "dist/index.js"
+    "database-schema-mcp": "dist/index.js",
+    "db-schema": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -50,27 +51,28 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "mysql2": "^3.11.5",
-    "pg": "^8.13.1",
-    "better-sqlite3": "^11.7.0",
-    "oracledb": "^6.7.0",
-    "mongodb": "^6.11.0",
-    "ioredis": "^5.4.2",
-    "memcached": "^2.2.2",
-    "kafkajs": "^2.2.4",
-    "amqplib": "^0.10.4",
-    "@elastic/elasticsearch": "^8.15.0",
-    "etcd3": "^1.1.2",
     "@clickhouse/client": "^1.5.0",
-    "@zilliz/milvus2-sdk-node": "^2.4.9"
+    "@elastic/elasticsearch": "^8.15.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@zilliz/milvus2-sdk-node": "^2.4.9",
+    "amqplib": "^0.10.4",
+    "better-sqlite3": "^11.7.0",
+    "commander": "^14.0.2",
+    "etcd3": "^1.1.2",
+    "ioredis": "^5.4.2",
+    "kafkajs": "^2.2.4",
+    "memcached": "^2.2.2",
+    "mongodb": "^6.11.0",
+    "mysql2": "^3.11.5",
+    "oracledb": "^6.7.0",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.5",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/memcached": "^2.2.10",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
-    "@types/amqplib": "^0.10.5",
-    "@types/memcached": "^2.2.10",
     "@vitest/coverage-v8": "^2.1.8",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

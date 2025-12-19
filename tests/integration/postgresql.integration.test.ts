@@ -197,7 +197,7 @@ describe('PostgreSQL Integration Tests (Real Database)', () => {
     const schema = await connector.getSchema();
 
     expect(schema.databaseType).toBe('postgresql');
-    expect(schema.databaseName).toBe('testdb');
+    expect(schema.databaseName).toBe(config.database);
     expect(schema.tables).toHaveLength(4);
 
     // Check users table structure
@@ -299,18 +299,6 @@ describe('PostgreSQL Integration Tests (Real Database)', () => {
 
     const getUserCount = schema.procedures?.find(p => p.name === 'get_user_count');
     expect(getUserCount).toBeDefined();
-  }, INTEGRATION_TIMEOUT);
-
-  it('should search for columns across tables', async () => {
-    const idTables = await connector.searchColumns('id');
-    expect(idTables.length).toBeGreaterThanOrEqual(4);
-    expect(idTables).toContain('users');
-
-    const emailTables = await connector.searchColumns('email');
-    expect(emailTables).toContain('users');
-
-    const nonExistent = await connector.searchColumns('nonexistent_column_xyz');
-    expect(nonExistent).toHaveLength(0);
   }, INTEGRATION_TIMEOUT);
 
   it('should handle NUMERIC type correctly', async () => {

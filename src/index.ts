@@ -107,24 +107,6 @@ async function main() {
             required: ['databaseName', 'tableName'],
           },
         },
-        {
-          name: 'search_columns',
-          description: `Search for tables containing a specific column name. Only works with relational databases.\n\nAvailable databases: ${databases.join(', ')}`,
-          inputSchema: {
-            type: 'object',
-            properties: {
-              databaseName: {
-                type: 'string',
-                description: `Name of the database as configured in config.json. Available: ${databases.join(', ')}`,
-              },
-              columnName: {
-                type: 'string',
-                description: 'Name of the column to search for',
-              },
-            },
-            required: ['databaseName', 'columnName'],
-          },
-        },
       ],
     };
   });
@@ -151,13 +133,6 @@ async function main() {
 
         case 'get_table_details': {
           const result = await schemaTools.getTableDetails(args as any);
-          return {
-            content: [{ type: 'text', text: result }],
-          };
-        }
-
-        case 'search_columns': {
-          const result = await schemaTools.searchColumns(args as any);
           return {
             content: [{ type: 'text', text: result }],
           };

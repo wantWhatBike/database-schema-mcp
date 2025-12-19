@@ -172,11 +172,6 @@ export class RabbitMQConnector extends DatabaseConnector {
     }
   }
 
-  async searchColumns(columnName: string): Promise<string[]> {
-    // Not applicable for RabbitMQ
-    return [];
-  }
-
   private async getQueues(): Promise<RabbitMQQueueInfo[]> {
     if (!this.channel) {
       throw new Error('Not connected to RabbitMQ');

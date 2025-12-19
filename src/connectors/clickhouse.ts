@@ -19,7 +19,7 @@ export class ClickHouseConnector extends DatabaseConnector {
     super(config);
   }
 
-  async connect(): Promise<void> {
+  private buildClientConfig() {
     const {
       host = 'localhost',
       port = 8123,
@@ -34,14 +34,18 @@ export class ClickHouseConnector extends DatabaseConnector {
 
     const actualUser = username || user || 'default';
 
-    this.client = createClient({
+    return {
       url: url || `http://${host}:${port}`,
       username: actualUser,
       password: password || '',
       database,
       clickhouse_settings: clickhouseSettings,
       compression: compression ? { request: true, response: true } : undefined,
-    });
+    };
+  }
+
+  async connect(): Promise<void> {
+    this.client = createClient(this.buildClientConfig());
 
     // Test connection
     await this.client.ping();
@@ -58,29 +62,7 @@ export class ClickHouseConnector extends DatabaseConnector {
 
   async testConnection(): Promise<boolean> {
     try {
-      // Create a temporary client to test the connection
-      const {
-        host = 'localhost',
-        port = 8123,
-        database = 'default',
-        username,
-        user,
-        password,
-        url,
-        clickhouseSettings,
-        compression = true,
-      } = this.config;
-
-      const actualUser = username || user || 'default';
-
-      const testClient = createClient({
-        url: url || `http://${host}:${port}`,
-        username: actualUser,
-        password: password || '',
-        database,
-        clickhouse_settings: clickhouseSettings,
-        compression: compression ? { request: true, response: true } : undefined,
-      });
+      const testClient = createClient(this.buildClientConfig());
 
       // Test the connection with ping
       await testClient.ping();
@@ -215,47 +197,6 @@ export class ClickHouseConnector extends DatabaseConnector {
       this.logError(`Error getting details for table ${tableName}`, error);
       return null;
     }
-  }
-
-  /**
-   * Escape special LIKE pattern characters for use in ILIKE queries.
-   * Escapes % and _ characters so they're treated literally, not as wildcards.
-   *
-   * @param searchTerm The user's search term
-   * @returns Escaped search term safe for LIKE patterns
-   */
-  private escapeLikePattern(searchTerm: string): string {
-    // Escape backslash first, then % and _
-    return searchTerm
-      .replace(/\\/g, '\\\\')  // \ → \\
-      .replace(/%/g, '\\%')    // % → \%
-      .replace(/_/g, '\\_');   // _ → \_
-  }
-
-  async searchColumns(columnName: string): Promise<string[]> {
-    if (!this.client) {
-      throw new Error('Not connected to ClickHouse');
-    }
-
-    const database = this.config.database || 'default';
-
-    const result = await this.client.query({
-      query: `
-        SELECT DISTINCT table
-        FROM system.columns
-        WHERE database = {database: String}
-          AND name ILIKE {columnName: String}
-        ORDER BY table
-      `,
-      format: 'JSONEachRow',
-      query_params: {
-        database,
-        columnName: `%${columnName}%`,
-      },
-    });
-
-    const rows = await result.json<any>();
-    return rows.map((row: any) => row.table);
   }
 
   protected async getDatabaseVersion(): Promise<string | undefined> {

@@ -202,52 +202,6 @@ export class SchemaTools {
   }
 
   /**
-   * Search for tables containing a specific column
-   */
-  async searchColumns(params: ToolParams & { columnName: string }): Promise<string> {
-    const { databaseName, columnName } = params;
-
-    if (!this.config.databases[databaseName]) {
-      throw new Error(
-        `Database "${databaseName}" not found in configuration. ` +
-          `Available databases: ${Object.keys(this.config.databases).join(', ')}`
-      );
-    }
-
-    const dbConfig = this.config.databases[databaseName];
-    const connector = createConnector(dbConfig);
-
-    try {
-      await connector.connect();
-      const tables = await connector.searchColumns(columnName);
-
-      const lines: string[] = [];
-      lines.push(`# Tables containing column "${columnName}"`);
-      lines.push('');
-
-      if (tables.length === 0) {
-        lines.push(`No tables found with column "${columnName}".`);
-      } else {
-        lines.push(`Found ${tables.length} table(s):`);
-        lines.push('');
-        for (const table of tables) {
-          lines.push(`- ${table}`);
-        }
-      }
-
-      return lines.join('\n');
-    } catch (error) {
-      throw new Error(
-        `Failed to search columns in database "${databaseName}": ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    } finally {
-      await connector.disconnect();
-    }
-  }
-
-  /**
    * Get list of available databases from configuration
    */
   listDatabases(): string[] {

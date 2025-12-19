@@ -311,19 +311,6 @@ describe('ClickHouse Integration Tests (Real Database)', () => {
     expect(ordersTable?.sortingKey).toBeDefined();
   }, INTEGRATION_TIMEOUT);
 
-  it('should search for columns across tables', async () => {
-    const idTables = await connector.searchColumns('id');
-    expect(idTables.length).toBeGreaterThanOrEqual(3);
-    expect(idTables).toContain('users');
-    expect(idTables).toContain('products');
-
-    const emailTables = await connector.searchColumns('email');
-    expect(emailTables).toContain('users');
-
-    const nonExistent = await connector.searchColumns('nonexistent_column_xyz');
-    expect(nonExistent).toHaveLength(0);
-  }, INTEGRATION_TIMEOUT);
-
   it('should test connection successfully', async () => {
     const testConnector = new ClickHouseConnector(config);
     const result = await testConnector.testConnection();

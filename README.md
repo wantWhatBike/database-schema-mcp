@@ -89,6 +89,45 @@ export REDIS_PASSWORD="your_password"
 
 ## Usage
 
+This tool provides two ways to access database schema information:
+
+1. **CLI Tool** - Command-line interface for quick schema extraction
+2. **MCP Server** - Model Context Protocol server for integration with Claude Desktop and other MCP clients
+
+### Using the CLI Tool
+
+After building and linking the package, you can use the `db-schema` command:
+
+```bash
+# Install and link the package
+npm install
+npm run build
+npm link
+
+# Get complete database schema
+db-schema --config config.json --database my_mysql
+
+# List all tables
+db-schema --config config.json --database my_mysql --list-tables
+
+# Get details for a specific table
+db-schema --config config.json --database my_mysql --table users
+
+# Export schema to a file
+db-schema --config config.json --database my_mysql --output schema.md
+
+# Use environment variable for config path
+export DB_SCHEMA_CONFIG=config.json
+db-schema --database my_mysql
+```
+
+**CLI Options:**
+- `-c, --config <path>` - Path to configuration file (required unless DB_SCHEMA_CONFIG is set)
+- `-d, --database <name>` - Database name from config (required)
+- `-l, --list-tables` - List all tables/collections/topics
+- `-t, --table <name>` - Get details for a specific table
+- `-o, --output <path>` - Output file path (default: stdout)
+
 ### Running the MCP Server
 
 ```bash
@@ -131,14 +170,6 @@ Get detailed information about a specific table.
 **Parameters:**
 - `databaseName` (string): Name of the database from config.json
 - `tableName` (string): Name of the table
-
-#### 4. `search_columns`
-
-Search for tables containing a specific column (relational databases only).
-
-**Parameters:**
-- `databaseName` (string): Name of the database from config.json
-- `columnName` (string): Column name to search for
 
 ## Database-Specific Configuration
 

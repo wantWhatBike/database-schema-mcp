@@ -54,8 +54,13 @@ export class KafkaConnector extends DatabaseConnector {
     }
   }
 
+  /**
+   * Get database version information.
+   * Note: KafkaJS doesn't directly expose broker version in describeCluster.
+   * Returns cluster information instead (controller host/port or broker count).
+   * @returns Cluster information string or 'Kafka' if unavailable
+   */
   protected async getDatabaseVersion(): Promise<string | undefined> {
-    // Get Kafka broker version from cluster metadata
     this.ensureConnected();
 
     try {

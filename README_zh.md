@@ -89,6 +89,45 @@ export REDIS_PASSWORD="your_password"
 
 ## 使用方法
 
+本工具提供两种访问数据库 schema 信息的方式：
+
+1. **CLI 工具** - 用于快速 schema 提取的命令行界面
+2. **MCP 服务器** - 用于集成 Claude Desktop 和其他 MCP 客户端的模型上下文协议服务器
+
+### 使用 CLI 工具
+
+构建并链接包后，您可以使用 `db-schema` 命令：
+
+```bash
+# 安装并链接包
+npm install
+npm run build
+npm link
+
+# 获取完整数据库 schema
+db-schema --config config.json --database my_mysql
+
+# 列出所有表
+db-schema --config config.json --database my_mysql --list-tables
+
+# 获取特定表的详细信息
+db-schema --config config.json --database my_mysql --table users
+
+# 导出 schema 到文件
+db-schema --config config.json --database my_mysql --output schema.md
+
+# 使用环境变量设置配置文件路径
+export DB_SCHEMA_CONFIG=config.json
+db-schema --database my_mysql
+```
+
+**CLI 选项：**
+- `-c, --config <path>` - 配置文件路径（必需，除非设置了 DB_SCHEMA_CONFIG）
+- `-d, --database <name>` - 配置文件中的数据库名称（必需）
+- `-l, --list-tables` - 列出所有表/集合/主题
+- `-t, --table <name>` - 获取特定表的详细信息
+- `-o, --output <path>` - 输出文件路径（默认：标准输出）
+
 ### 运行 MCP 服务器
 
 ```bash
@@ -131,14 +170,6 @@ DB_SCHEMA_CONFIG=/path/to/config.json npm start
 **参数：**
 - `databaseName` (string)：config.json 中的数据库名称
 - `tableName` (string)：表名
-
-#### 4. `search_columns`
-
-搜索包含特定列的表（仅限关系型数据库）。
-
-**参数：**
-- `databaseName` (string)：config.json 中的数据库名称
-- `columnName` (string)：要搜索的列名
 
 ## 数据库特定配置
 

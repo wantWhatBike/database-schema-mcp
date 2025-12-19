@@ -101,35 +101,6 @@ export abstract class DatabaseConnector {
   abstract getTableDetails(tableName: string): Promise<TableDetails | null>;
 
   /**
-   * Search for tables containing columns with specified name
-   * Only applicable to relational databases
-   * @param columnName The column name to search for
-   * @returns Array of table names containing the column
-   */
-  async searchColumns(columnName: string): Promise<string[]> {
-    const tables = await this.listTables();
-    const results: string[] = [];
-
-    for (const table of tables) {
-      if (table.type === 'collection' || table.type === 'topic') {
-        continue; // Skip non-relational structures
-      }
-
-      const details = await this.getTableDetails(table.name);
-      if (details && details.columns) {
-        const hasColumn = details.columns.some(
-          (col) => col.name.toLowerCase() === columnName.toLowerCase()
-        );
-        if (hasColumn) {
-          results.push(table.name);
-        }
-      }
-    }
-
-    return results;
-  }
-
-  /**
    * Helper method to ensure connection is established
    * @throws Error if not connected
    */

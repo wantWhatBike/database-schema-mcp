@@ -284,10 +284,4 @@ describe('Memcached Integration Tests (Real Database)', () => {
 
     expect(retrieved).toEqual(testValue);
   }, INTEGRATION_TIMEOUT);
-
-  it('should return empty search results for searchColumns', async () => {
-    // Memcached doesn't support column search
-    const results = await connector.searchColumns('any_column');
-    expect(results).toEqual([]);
-  }, INTEGRATION_TIMEOUT);
 });

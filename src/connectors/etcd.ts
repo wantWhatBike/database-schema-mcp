@@ -166,11 +166,6 @@ export class EtcdConnector extends DatabaseConnector {
     }
   }
 
-  async searchColumns(columnName: string): Promise<string[]> {
-    // Not applicable for etcd
-    return [];
-  }
-
   private async analyzeKeyPatterns(): Promise<EtcdKeyPattern[]> {
     if (!this.client) {
       return [];

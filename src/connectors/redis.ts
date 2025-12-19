@@ -158,8 +158,15 @@ export class RedisConnector extends DatabaseConnector {
   private async scanKeys(pattern: string, maxKeys: number): Promise<string[]> {
     const keys: string[] = [];
     let cursor = '0';
+    let iterations = 0;
+    const MAX_ITERATIONS = 10000; // Safety limit to prevent infinite loops
 
     do {
+      if (iterations++ > MAX_ITERATIONS) {
+        console.warn(`Redis SCAN reached maximum iterations (${MAX_ITERATIONS}), stopping scan`);
+        break;
+      }
+
       const [nextCursor, foundKeys] = await this.client!.scan(
         cursor,
         'MATCH',

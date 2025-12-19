@@ -82,10 +82,8 @@ export class ElasticsearchConnector extends DatabaseConnector {
 
   async testConnection(): Promise<boolean> {
     try {
-      if (!this.client) {
-        return false;
-      }
-      await this.client.ping();
+      await this.connect();
+      await this.disconnect();
       return true;
     } catch {
       return false;
@@ -168,29 +166,6 @@ export class ElasticsearchConnector extends DatabaseConnector {
       this.logError(`Error getting details for index ${tableName}`, error);
       return null;
     }
-  }
-
-  async searchColumns(columnName: string): Promise<string[]> {
-    if (!this.client) {
-      throw new Error('Not connected to Elasticsearch');
-    }
-
-    const indices = await this.listTables();
-    const matchingIndices: string[] = [];
-
-    for (const index of indices) {
-      const details = await this.getTableDetails(index.name);
-      if (details) {
-        const hasColumn = details.columns.some(
-          (col) => col.name.toLowerCase().includes(columnName.toLowerCase())
-        );
-        if (hasColumn) {
-          matchingIndices.push(index.name);
-        }
-      }
-    }
-
-    return matchingIndices;
   }
 
   protected async getDatabaseVersion(): Promise<string | undefined> {

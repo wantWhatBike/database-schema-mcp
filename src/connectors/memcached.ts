@@ -124,11 +124,6 @@ export class MemcachedConnector extends DatabaseConnector {
     }
   }
 
-  async searchColumns(columnName: string): Promise<string[]> {
-    // Not applicable for Memcached
-    return [];
-  }
-
   async testConnection(): Promise<boolean> {
     return new Promise((resolve) => {
       if (!this.client) {

@@ -184,7 +184,7 @@ describe('MySQL Integration Tests (Real Database)', () => {
     const schema = await connector.getSchema();
 
     expect(schema.databaseType).toBe('mysql');
-    expect(schema.databaseName).toBe('testdb');
+    expect(schema.databaseName).toBe(config.database);
     expect(schema.tables).toHaveLength(4);
 
     // Check users table structure
@@ -283,19 +283,6 @@ describe('MySQL Integration Tests (Real Database)', () => {
     const getUserCount = schema.procedures?.find(p => p.name === 'get_user_count');
     expect(getUserCount).toBeDefined();
     expect(getUserCount?.name).toBe('get_user_count');
-  }, INTEGRATION_TIMEOUT);
-
-  it('should search for columns across tables', async () => {
-    const idTables = await connector.searchColumns('id');
-    expect(idTables.length).toBeGreaterThanOrEqual(4);
-    expect(idTables).toContain('users');
-    expect(idTables).toContain('orders');
-
-    const emailTables = await connector.searchColumns('email');
-    expect(emailTables).toContain('users');
-
-    const nonExistent = await connector.searchColumns('nonexistent_column_xyz');
-    expect(nonExistent).toHaveLength(0);
   }, INTEGRATION_TIMEOUT);
 
   it('should handle DECIMAL type correctly', async () => {

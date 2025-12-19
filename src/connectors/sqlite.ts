@@ -155,7 +155,7 @@ export class SQLiteConnector extends DatabaseConnector {
       name: col.name,
       type: col.type,
       nullable: col.notnull === 0,
-      defaultValue: col.dflt_value,
+      defaultValue: col.dflt_value || undefined,
       isPrimaryKey: col.pk === 1,
       isAutoIncrement: col.pk === 1 && col.type.toUpperCase() === 'INTEGER',
     }));

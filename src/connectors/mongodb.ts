@@ -114,8 +114,8 @@ export class MongoDBConnector extends DatabaseConnector {
     const indexes = details.indexes.map(idx => ({
       name: idx.name,
       columns: Object.keys(idx.keys),
-      // _id index is always unique in MongoDB, even if not explicitly marked
-      isUnique: idx.unique || idx.name === '_id_',
+      // _id field always has a unique index, check if this is single-field _id index
+      isUnique: idx.unique || (Object.keys(idx.keys).length === 1 && Object.keys(idx.keys)[0] === '_id'),
       isPrimary: idx.name === '_id_',
     }));
 

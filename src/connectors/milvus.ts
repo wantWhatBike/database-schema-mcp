@@ -183,29 +183,6 @@ export class MilvusConnector extends DatabaseConnector {
     }
   }
 
-  async searchColumns(columnName: string): Promise<string[]> {
-    if (!this.client) {
-      throw new Error('Not connected to Milvus');
-    }
-
-    const collections = await this.listTables();
-    const matchingCollections: string[] = [];
-
-    for (const collection of collections) {
-      const details = await this.getTableDetails(collection.name);
-      if (details) {
-        const hasColumn = details.columns.some((col) =>
-          col.name.toLowerCase().includes(columnName.toLowerCase())
-        );
-        if (hasColumn) {
-          matchingCollections.push(collection.name);
-        }
-      }
-    }
-
-    return matchingCollections;
-  }
-
   private async getCollections(): Promise<MilvusCollectionInfo[]> {
     if (!this.client) {
       return [];
