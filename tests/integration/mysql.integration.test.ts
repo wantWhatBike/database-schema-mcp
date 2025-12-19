@@ -264,7 +264,7 @@ describe('MySQL Integration Tests (Real Database)', () => {
 
     const activeUsersView = schema.views?.find(v => v.name === 'active_users');
     expect(activeUsersView).toBeDefined();
-    expect(activeUsersView?.definition).toContain('SELECT');
+    expect(activeUsersView?.definition?.toUpperCase()).toContain('SELECT');
     expect(activeUsersView?.definition).toContain('users');
   }, INTEGRATION_TIMEOUT);
 

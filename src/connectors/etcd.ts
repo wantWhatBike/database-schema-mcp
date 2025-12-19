@@ -55,14 +55,13 @@ export class EtcdConnector extends DatabaseConnector {
 
     this.client = new Etcd3(options);
 
-    // Test connection
+    // Test connection by trying to list keys
     try {
-      await this.client.get('').string();
+      await this.client.getAll().limit(1).keys();
     } catch (error: any) {
-      // Connection test - ignore if key doesn't exist
-      if (!error.message?.includes('key not found')) {
-        throw error;
-      }
+      throw new Error(
+        `Failed to connect to etcd: ${error.message || String(error)}`
+      );
     }
     this.connected = true;
   }
@@ -80,13 +79,9 @@ export class EtcdConnector extends DatabaseConnector {
       if (!this.client) {
         return false;
       }
-      await this.client.get('').string();
+      await this.client.getAll().limit(1).keys();
       return true;
-    } catch (error: any) {
-      // Connection test - if we can connect but key doesn't exist, that's still a success
-      if (error.message?.includes('key not found') || error.message?.includes('not found')) {
-        return true;
-      }
+    } catch {
       return false;
     }
   }

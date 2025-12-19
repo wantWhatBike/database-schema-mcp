@@ -35,7 +35,7 @@ export class ClickHouseConnector extends DatabaseConnector {
     const actualUser = username || user || 'default';
 
     this.client = createClient({
-      host: url || `http://${host}:${port}`,
+      url: url || `http://${host}:${port}`,
       username: actualUser,
       password: password || '',
       database,
@@ -58,11 +58,41 @@ export class ClickHouseConnector extends DatabaseConnector {
 
   async testConnection(): Promise<boolean> {
     try {
-      if (!this.client) {
-        return false;
-      }
-      const result = await this.client.ping();
-      return result.success;
+      // Create a temporary client to test the connection
+      const {
+        host = 'localhost',
+        port = 8123,
+        database = 'default',
+        username,
+        user,
+        password,
+        url,
+        clickhouseSettings,
+        compression = true,
+      } = this.config;
+
+      const actualUser = username || user || 'default';
+
+      const testClient = createClient({
+        url: url || `http://${host}:${port}`,
+        username: actualUser,
+        password: password || '',
+        database,
+        clickhouse_settings: clickhouseSettings,
+        compression: compression ? { request: true, response: true } : undefined,
+      });
+
+      // Test the connection with ping
+      await testClient.ping();
+
+      // Also try a simple query to ensure authentication works
+      await testClient.query({
+        query: 'SELECT 1',
+        format: 'JSONEachRow',
+      });
+
+      await testClient.close();
+      return true;
     } catch {
       return false;
     }
@@ -209,21 +239,18 @@ export class ClickHouseConnector extends DatabaseConnector {
 
     const database = this.config.database || 'default';
 
-    // Escape special LIKE characters to treat them literally
-    const escapedColumnName = this.escapeLikePattern(columnName);
-
     const result = await this.client.query({
       query: `
         SELECT DISTINCT table
         FROM system.columns
         WHERE database = {database: String}
-          AND name ILIKE {columnName: String} ESCAPE '\\\\'
+          AND name ILIKE {columnName: String}
         ORDER BY table
       `,
       format: 'JSONEachRow',
       query_params: {
         database,
-        columnName: `%${escapedColumnName}%`,
+        columnName: `%${columnName}%`,
       },
     });
 

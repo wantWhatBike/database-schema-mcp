@@ -114,7 +114,8 @@ export class MongoDBConnector extends DatabaseConnector {
     const indexes = details.indexes.map(idx => ({
       name: idx.name,
       columns: Object.keys(idx.keys),
-      isUnique: idx.unique || false,
+      // _id index is always unique in MongoDB, even if not explicitly marked
+      isUnique: idx.unique || idx.name === '_id_',
       isPrimary: idx.name === '_id_',
     }));
 
@@ -261,13 +262,19 @@ export class MongoDBConnector extends DatabaseConnector {
     return 'unknown';
   }
 
-  private async getAllCollectionDetails(): Promise<MongoCollectionDetails[]> {
+  private async getAllCollectionDetails(): Promise<any[]> {
     const tables = await this.listTables();
-    const details: MongoCollectionDetails[] = [];
+    const details: any[] = [];
 
     for (const table of tables) {
       const detail = await this.getCollectionDetails(table.name);
-      details.push(detail);
+      // Add metadata to match expected schema format
+      details.push({
+        ...detail,
+        name: table.name,
+        type: 'collection',
+        rowCount: detail.documentCount,
+      });
     }
 
     return details;

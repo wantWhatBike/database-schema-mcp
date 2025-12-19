@@ -40,18 +40,37 @@ export class RabbitMQConnector extends DatabaseConnector {
 
     if (this.connection) {
       this.channel = await this.connection.createChannel();
+
+      // Add error handlers to prevent unhandled errors
+      this.channel.on('error', (err: any) => {
+        // Channel errors are expected in some cases (e.g., checking non-existent queues)
+        // Just log and continue
+      });
+
+      this.channel.on('close', () => {
+        // Channel closed, mark as null
+        this.channel = null;
+      });
     }
     this.connected = true;
   }
 
   async disconnect(): Promise<void> {
     if (this.channel) {
-      await this.channel.close();
+      try {
+        await this.channel.close();
+      } catch {
+        // Channel might already be closed, ignore error
+      }
       this.channel = null;
     }
     if (this.connection) {
-      // @ts-ignore - close method exists on Connection
-      await this.connection.close();
+      try {
+        // @ts-ignore - close method exists on Connection
+        await this.connection.close();
+      } catch {
+        // Connection might already be closed, ignore error
+      }
       this.connection = null;
     }
     this.connected = false;
@@ -62,15 +81,9 @@ export class RabbitMQConnector extends DatabaseConnector {
       if (!this.connection || !this.channel) {
         return false;
       }
-      // Try to perform a simple operation
-      await this.channel.checkQueue('amq.rabbitmq.test.nonexistent');
-      return true;
-    } catch (error: any) {
-      // If error is "NOT_FOUND" it means we're connected but queue doesn't exist
-      // which is actually fine for connection test
-      if (error.message && error.message.includes('NOT_FOUND')) {
-        return true;
-      }
+      // Simply check if connection and channel are still open
+      return !this.connection.connection.closed && this.channel !== null;
+    } catch {
       return false;
     }
   }
@@ -150,8 +163,12 @@ export class RabbitMQConnector extends DatabaseConnector {
         indexes: [],
         foreignKeys: [],
       };
-    } catch (error) {
-      return null;
+    } catch (error: any) {
+      // If queue doesn't exist, throw the error
+      if (error.message && error.message.includes('NOT_FOUND')) {
+        throw new Error(`Queue '${tableName}' does not exist`);
+      }
+      throw error;
     }
   }
 

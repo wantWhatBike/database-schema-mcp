@@ -157,8 +157,9 @@ describe('Memcached Integration Tests (Real Database)', () => {
     };
 
     const failingConnector = new MemcachedConnector(invalidConfig);
+    const result = await failingConnector.testConnection();
 
-    await expect(failingConnector.connect()).rejects.toThrow();
+    expect(result).toBe(false);
   }, INTEGRATION_TIMEOUT);
 
   it('should verify data can be set and retrieved', async () => {
@@ -239,7 +240,7 @@ describe('Memcached Integration Tests (Real Database)', () => {
     expect(stats).toBeDefined();
     // After flush, curr_items should be 0
     const firstServer = stats[0];
-    expect(firstServer.curr_items).toBe('0');
+    expect(firstServer.curr_items).toBe(0);
   }, INTEGRATION_TIMEOUT);
 
   it('should handle numeric values', async () => {

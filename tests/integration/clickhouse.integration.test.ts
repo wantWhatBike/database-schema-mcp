@@ -26,7 +26,7 @@ describe('ClickHouse Integration Tests (Real Database)', () => {
   beforeEach(async () => {
     // Create a direct ClickHouse connection for test data setup
     client = createClient({
-      host: `http://${config.host}:${config.port}`,
+      url: `http://${config.host}:${config.port}`,
       username: config.username,
       password: config.password,
       database: config.database,

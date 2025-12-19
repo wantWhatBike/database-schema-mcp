@@ -95,24 +95,28 @@ export class PostgreSQLConnector extends DatabaseConnector {
       `
       SELECT
         t.table_name as name,
-        obj_description((quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))::regclass) as comment,
-        pg_stat.n_live_tup as row_count
+        obj_description((quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))::regclass) as comment
       FROM information_schema.tables t
-      LEFT JOIN pg_stat_user_tables pg_stat
-        ON t.table_name = pg_stat.relname AND t.table_schema = pg_stat.schemaname
       WHERE t.table_schema = $1 AND t.table_type = 'BASE TABLE'
       ORDER BY t.table_name
       `,
       [this.schema]
     );
 
-    return result.rows.map((row) => ({
-      name: row.name,
-      schema: this.schema,
-      comment: row.comment || undefined,
-      type: 'table' as const,
-      rowCount: row.row_count || undefined,
-    }));
+    // Get row counts for each table using COUNT(*)
+    const tables: TableInfo[] = [];
+    for (const row of result.rows) {
+      const rowCount = await this.getRowCount(row.name);
+      tables.push({
+        name: row.name,
+        schema: this.schema,
+        comment: row.comment || undefined,
+        type: 'table' as const,
+        rowCount,
+      });
+    }
+
+    return tables;
   }
 
   async getTableDetails(tableName: string): Promise<TableDetails | null> {
@@ -157,11 +161,12 @@ export class PostgreSQLConnector extends DatabaseConnector {
 
   private async getRowCount(tableName: string): Promise<number | undefined> {
     try {
+      // Use identifier quoting to prevent SQL injection
       const result = await this.client!.query(
-        `SELECT n_live_tup FROM pg_stat_user_tables WHERE schemaname = $1 AND relname = $2`,
-        [this.schema, tableName]
+        `SELECT COUNT(*) as count FROM ${this.client!.escapeIdentifier(this.schema)}.${this.client!.escapeIdentifier(tableName)}`
       );
-      return result.rows[0]?.n_live_tup || undefined;
+      const count = result.rows[0]?.count;
+      return count != null ? Number(count) : undefined;
     } catch {
       return undefined;
     }

@@ -12,6 +12,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: test_password
       MYSQL_DATABASE: testdb
+      MYSQL_ROOT_HOST: "%"
     ports:
       - "3306:3306"
     healthcheck:
@@ -44,7 +45,7 @@ services:
     image: enmotech/opengauss:3.1.0
     container_name: mcp-integration-opengauss
     environment:
-      GS_PASSWORD: test_password
+      GS_PASSWORD: Test@123456
       GS_DB: testdb
     ports:
       - "5433:5432"

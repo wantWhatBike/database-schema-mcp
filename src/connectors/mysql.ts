@@ -209,17 +209,18 @@ export class MySQLConnector extends DatabaseConnector {
     const [rows] = await this.connection!.query(
       `
       SELECT
-        CONSTRAINT_NAME as name,
-        COLUMN_NAME as columnName,
-        REFERENCED_TABLE_NAME as referencedTable,
-        REFERENCED_COLUMN_NAME as referencedColumn,
-        UPDATE_RULE as onUpdate,
-        DELETE_RULE as onDelete
-      FROM information_schema.KEY_COLUMN_USAGE
-      JOIN information_schema.REFERENTIAL_CONSTRAINTS
-        USING (CONSTRAINT_NAME, CONSTRAINT_SCHEMA)
-      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
-      ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION
+        kcu.CONSTRAINT_NAME as name,
+        kcu.COLUMN_NAME as columnName,
+        kcu.REFERENCED_TABLE_NAME as referencedTable,
+        kcu.REFERENCED_COLUMN_NAME as referencedColumn,
+        rc.UPDATE_RULE as onUpdate,
+        rc.DELETE_RULE as onDelete
+      FROM information_schema.KEY_COLUMN_USAGE kcu
+      JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+        ON kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+        AND kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
+      WHERE kcu.TABLE_SCHEMA = ? AND kcu.TABLE_NAME = ?
+      ORDER BY kcu.CONSTRAINT_NAME, kcu.ORDINAL_POSITION
       `,
       [this.config.database, tableName]
     );

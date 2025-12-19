@@ -38,20 +38,23 @@ describe('OpenGauss Integration Tests (Real Database)', () => {
     });
     await client.connect();
 
+    // Set search_path to public schema
+    await client.query(`SET search_path TO public`);
+
     // Clean up any existing test tables
     await client.query(`
-      DROP TABLE IF EXISTS order_items CASCADE;
-      DROP TABLE IF EXISTS orders CASCADE;
-      DROP TABLE IF EXISTS products CASCADE;
-      DROP TABLE IF EXISTS users CASCADE;
-      DROP VIEW IF EXISTS active_users;
-      DROP FUNCTION IF EXISTS get_user_count();
+      DROP TABLE IF EXISTS public.order_items CASCADE;
+      DROP TABLE IF EXISTS public.orders CASCADE;
+      DROP TABLE IF EXISTS public.products CASCADE;
+      DROP TABLE IF EXISTS public.users CASCADE;
+      DROP VIEW IF EXISTS public.active_users;
+      DROP FUNCTION IF EXISTS public.get_user_count();
     `);
 
     // Create test schema with full structure
     await client.query(`
       -- Users table
-      CREATE TABLE users (
+      CREATE TABLE public.users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
         username VARCHAR(100) NOT NULL,
@@ -62,61 +65,61 @@ describe('OpenGauss Integration Tests (Real Database)', () => {
         CONSTRAINT users_email_key UNIQUE (email)
       );
 
-      COMMENT ON TABLE users IS 'User accounts';
-      COMMENT ON COLUMN users.email IS 'User email address';
+      COMMENT ON TABLE public.users IS 'User accounts';
+      COMMENT ON COLUMN public.users.email IS 'User email address';
 
-      CREATE INDEX idx_username ON users(username);
-      CREATE INDEX idx_created ON users(created_at);
+      CREATE INDEX idx_username ON public.users(username);
+      CREATE INDEX idx_created ON public.users(created_at);
 
       -- Products table
-      CREATE TABLE products (
+      CREATE TABLE public.products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price NUMERIC(10,2) NOT NULL,
         stock INTEGER DEFAULT 0
       );
 
-      COMMENT ON TABLE products IS 'Product catalog';
+      COMMENT ON TABLE public.products IS 'Product catalog';
 
-      CREATE UNIQUE INDEX idx_name ON products(name);
+      CREATE UNIQUE INDEX idx_name ON public.products(name);
 
       -- Orders table
-      CREATE TABLE orders (
+      CREATE TABLE public.orders (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL,
         order_date TIMESTAMP NOT NULL,
         total NUMERIC(10,2),
         status VARCHAR(50) DEFAULT 'pending',
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
       );
 
-      COMMENT ON TABLE orders IS 'Customer orders';
+      COMMENT ON TABLE public.orders IS 'Customer orders';
 
-      CREATE INDEX idx_user ON orders(user_id);
-      CREATE INDEX idx_date ON orders(order_date);
+      CREATE INDEX idx_user ON public.orders(user_id);
+      CREATE INDEX idx_date ON public.orders(order_date);
 
       -- Order items table
-      CREATE TABLE order_items (
+      CREATE TABLE public.order_items (
         id SERIAL PRIMARY KEY,
         order_id INTEGER NOT NULL,
         product_id INTEGER NOT NULL,
         quantity INTEGER NOT NULL,
         price NUMERIC(10,2) NOT NULL,
-        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES products(id)
+        FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES public.products(id)
       );
 
-      CREATE INDEX idx_order ON order_items(order_id);
-      CREATE INDEX idx_product ON order_items(product_id);
+      CREATE INDEX idx_order ON public.order_items(order_id);
+      CREATE INDEX idx_product ON public.order_items(product_id);
 
       -- View
-      CREATE VIEW active_users AS
+      CREATE VIEW public.active_users AS
       SELECT id, email, username
-      FROM users
+      FROM public.users
       WHERE is_active = true;
 
       -- Function
-      CREATE FUNCTION get_user_count()
+      CREATE FUNCTION public.get_user_count()
       RETURNS integer AS $$
       BEGIN
         RETURN (SELECT COUNT(*) FROM users);

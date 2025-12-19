@@ -55,11 +55,8 @@ export class OpenGaussConnector extends DatabaseConnector {
 
   async testConnection(): Promise<boolean> {
     try {
-      if (!this.pool) {
-        return false;
-      }
-      const client = await this.pool.connect();
-      client.release();
+      await this.connect();
+      await this.disconnect();
       return true;
     } catch {
       return false;
@@ -97,11 +94,11 @@ export class OpenGaussConnector extends DatabaseConnector {
     const result = await this.pool.query(
       `
       SELECT
-        tablename as name,
-        obj_description((schemaname || '.' || tablename)::regclass) as comment
-      FROM pg_tables
-      WHERE schemaname = $1
-      ORDER BY tablename
+        t.table_name as name,
+        obj_description((quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))::regclass) as comment
+      FROM information_schema.tables t
+      WHERE t.table_schema = $1 AND t.table_type = 'BASE TABLE'
+      ORDER BY t.table_name
     `,
       [schema]
     );
@@ -143,6 +140,11 @@ export class OpenGaussConnector extends DatabaseConnector {
         [schema, tableName]
       );
 
+      // If no columns found, table doesn't exist
+      if (columnsResult.rows.length === 0) {
+        return null;
+      }
+
       const columns: ColumnInfo[] = columnsResult.rows.map((row) => ({
         name: row.column_name,
         type: row.data_type,
@@ -152,22 +154,27 @@ export class OpenGaussConnector extends DatabaseConnector {
         maxLength: row.character_maximum_length,
       }));
 
-      // Get indexes
+      // Get indexes - OpenGauss compatible version without array_position
       const indexesResult = await this.pool.query(
         `
-        SELECT
-          i.indexname as index_name,
-          i.indexdef as index_definition,
+        SELECT DISTINCT ON (ic.relname)
+          ic.relname as index_name,
+          pg_get_indexdef(ix.indexrelid) as index_definition,
           ix.indisunique as is_unique,
           ix.indisprimary as is_primary,
-          ARRAY_AGG(a.attname ORDER BY array_position(ix.indkey, a.attnum)) as column_names
-        FROM pg_indexes i
-        JOIN pg_class c ON i.tablename = c.relname
+          ARRAY(
+            SELECT a.attname
+            FROM pg_attribute a
+            WHERE a.attrelid = c.oid
+            AND a.attnum = ANY(string_to_array(ix.indkey::text, ' ')::int2[])
+            ORDER BY a.attnum
+          ) as column_names
+        FROM pg_class c
+        JOIN pg_namespace n ON c.relnamespace = n.oid
         JOIN pg_index ix ON c.oid = ix.indrelid
         JOIN pg_class ic ON ix.indexrelid = ic.oid
-        JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(ix.indkey)
-        WHERE i.schemaname = $1 AND i.tablename = $2
-        GROUP BY i.indexname, i.indexdef, ix.indisunique, ix.indisprimary
+        WHERE n.nspname = $1 AND c.relname = $2
+        ORDER BY ic.relname
       `,
         [schema, tableName]
       );
@@ -226,10 +233,20 @@ export class OpenGaussConnector extends DatabaseConnector {
 
       const foreignKeys: ForeignKeyInfo[] = Array.from(fkMap.values());
 
+      // Get table comment
+      const tableCommentResult = await this.pool.query(
+        `
+        SELECT obj_description((quote_ident($1) || '.' || quote_ident($2))::regclass) as comment
+        `,
+        [schema, tableName]
+      );
+      const tableComment = tableCommentResult.rows[0]?.comment;
+
       return {
         name: tableName,
         schema,
         type: 'table' as const,
+        comment: tableComment,
         columns,
         indexes,
         foreignKeys,
